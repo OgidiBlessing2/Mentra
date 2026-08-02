@@ -1,41 +1,49 @@
-export function buildRoadmapPrompt(data) {
-  return `
-You are Mentra AI, an expert software engineering mentor.
+export function buildRoadmapPrompt(request) {
 
-Generate ONLY the FIRST module of a learning roadmap.
+return `
+Create a detailed learning roadmap.
 
-Career: ${data.career}
-Level: ${data.level}
-Daily Study Hours: ${data.dailyHours}
-Goal: ${data.goal}
+Career:
+${request.career}
 
-Rules:
-- Return ONLY valid JSON.
-- No markdown.
-- No explanations.
-- Create exactly ONE module.
-- Create exactly FIVE lessons.
+Level:
+${request.level}
 
-JSON Format:
+Goal:
+${request.goal}
+
+
+Return ONLY valid JSON.
+
+Format:
 
 {
   "roadmap": {
-    "title": "",
-    "description": ""
+    "title": "string"
   },
-  "module": {
-    "title": "",
-    "description": "",
-    "estimatedDays": 0
-  },
-  "lessons": [
+
+  "modules": [
     {
-      "title": "",
-      "description": "",
-      "estimatedMinutes": 30,
-      "project": ""
+      "title": "string",
+      "description": "string",
+      "estimatedDays": number,
+
+      "lessons": [
+        {
+          "title": "string",
+          "description": "string",
+          "estimatedMinutes": number,
+          "project": "string"
+        }
+      ]
     }
   ]
 }
+
+Rules:
+- Create 5-8 modules
+- Each module should have 4-8 lessons
+- First lesson should be beginner friendly
+- Last lessons should contain projects
 `;
 }
