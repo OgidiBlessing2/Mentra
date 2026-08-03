@@ -1,33 +1,58 @@
-import Card from "../common/Card";
-
 export default function StatCard({
-  icon: Icon,
   title,
   value,
+  icon: Icon,
   color,
 }) {
   return (
-    <Card className="flex items-center gap-4">
+    <div className="group rounded-[28px] border border-white/10 bg-[#18181B] p-6 transition duration-300 hover:-translate-y-2 hover:border-violet-500/30 hover:shadow-2xl hover:shadow-violet-500/10">
 
-      <div
-        className="w-14 h-14 rounded-xl flex items-center justify-center"
-        style={{ backgroundColor: color }}
-      >
-        <Icon className="text-white" size={28} />
+      <div className="flex items-center justify-between">
+
+        <div
+          className="flex h-14 w-14 items-center justify-center rounded-2xl"
+          style={{
+            backgroundColor: `${color}20`,
+          }}
+        >
+          <Icon
+            size={26}
+            color={color}
+          />
+        </div>
+
+        <span className="text-xs uppercase tracking-widest text-slate-500">
+
+          Live
+
+        </span>
+
       </div>
 
-      <div>
+      <h3 className="mt-8 text-slate-400">
 
-        <p className="text-slate-500">
-          {title}
-        </p>
+        {title}
 
-        <h2 className="text-2xl font-bold">
-          {value}
-        </h2>
+      </h3>
+
+      <div className="mt-2 text-4xl font-black text-white">
+
+        {value}
 
       </div>
 
-    </Card>
+      <div className="mt-6 flex items-center gap-2">
+
+        <div className="h-2 w-2 rounded-full bg-emerald-400" />
+
+        <span className="text-sm text-slate-400">
+
+          Updated just now
+
+        </span>
+
+      </div>
+
+    </div>
   );
 }

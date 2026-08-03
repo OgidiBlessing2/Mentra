@@ -1,73 +1,71 @@
-import Button from "../../components/common/Button";
+import { ArrowRight, Clock } from "lucide-react";
 
-export default function ContinueLearning({ lesson }) {
-  if (!lesson) {
-    return (
-      <div className="bg-white rounded-3xl p-8 shadow-sm mt-8">
-        <h2 className="text-2xl font-bold">
-          Continue Learning
-        </h2>
-
-        <p className="text-gray-500 mt-3">
-          No active lesson available.
-        </p>
-      </div>
-    );
-  }
-
+export default function ContinueLearning() {
   return (
-    <div className="bg-white rounded-3xl p-8 shadow-sm mt-8">
+    <div className="rounded-[30px] border border-white/10 bg-[#18181B] p-8">
 
-      <div className="flex justify-between items-start">
+      <div className="flex items-center justify-between">
 
         <div>
 
-          <h2 className="text-2xl font-bold">
-            Continue Learning
-          </h2>
+          <p className="text-slate-400">
 
-          <p className="text-gray-500 mt-2">
-            Pick up where you left off.
+            Continue Learning
+
           </p>
+
+          <h2 className="mt-2 text-3xl font-black text-white">
+
+            Python Variables
+
+          </h2>
 
         </div>
 
-        <Button>
-          Continue
-        </Button>
+        <div className="rounded-2xl bg-violet-600/20 p-4">
+
+          <Clock
+            className="text-violet-400"
+            size={28}
+          />
+
+        </div>
 
       </div>
 
       <div className="mt-8">
 
-        <h3 className="text-xl font-semibold">
-          {lesson.title}
-        </h3>
+        <div className="flex justify-between mb-3">
 
-        <p className="text-gray-500 mt-2">
-          {lesson.module}
-        </p>
+          <span className="text-slate-400">
 
-        <p className="text-gray-500">
-          {lesson.estimatedMinutes} mins
-        </p>
+            Progress
 
-        <div className="mt-6">
+          </span>
 
-          <div className="h-3 bg-gray-200 rounded-full">
+          <span className="text-white">
 
-            <div
-              className="h-full bg-indigo-600 rounded-full"
-              style={{
-                width: `${lesson.progress ?? 0}%`,
-              }}
-            />
+            75%
 
-          </div>
+          </span>
+
+        </div>
+
+        <div className="h-3 rounded-full bg-[#262626]">
+
+          <div className="h-full w-3/4 rounded-full bg-gradient-to-r from-violet-500 to-cyan-500" />
 
         </div>
 
       </div>
+
+      <button className="mt-8 flex items-center gap-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-4 text-white font-semibold hover:scale-105 transition">
+
+        Continue Lesson
+
+        <ArrowRight size={20} />
+
+      </button>
 
     </div>
   );

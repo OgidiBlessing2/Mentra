@@ -3,6 +3,7 @@ import HeroBanner from "../../components/dashboard/HeroBanner";
 import StatCard from "../../components/dashboard/StatCard";
 import { useDashboard } from "../../hooks/useDashboard";
 import ContinueLearning from "./ContinueLearning";
+import { Navigate } from "react-router-dom";
 import {
   BookOpen,
   Route,
@@ -10,8 +11,11 @@ import {
   Brain,
 } from "lucide-react";
 
+import TodaysGoal from "../../components/dashboard/TodaysGoal";
+import RecentActivity from "../../components/dashboard/RecentActivity";
+import AIMentorCard from "../../components/dashboard/AIMentorCard";
 export default function Dashboard() {
-
+  
   // Hook
   const {
     data,
@@ -19,20 +23,35 @@ export default function Dashboard() {
     error,
   } = useDashboard();
 
+
+ const dashboard = data?.dashboard;
+const roadmap = dashboard?.roadmap;
   // Loading
   if (isLoading) {
     return <DashboardLayout>Loading... </DashboardLayout>;
   }
+
+  if (!dashboard?.roadmap) {
+    return <Navigate to="/onboarding" replace />;
+}
 
   // Error
   if (error) {
     return <DashboardLayout>Something went wrong.</DashboardLayout>;
   }
 
-  // Dashboard data
-  const dashboard = data.dashboard;
-  const roadmap = dashboard.currentRoadmap;
 
+
+  // Dashboard data
+
+
+if (!data) {
+  return (
+    <DashboardLayout>
+      Loading dashboard...
+    </DashboardLayout>
+  );
+}
   // Stats
   const stats = [
     {
@@ -62,30 +81,40 @@ export default function Dashboard() {
   ];
 
   // JSX
-  return (
-    <DashboardLayout>
+ return (
+  <DashboardLayout>
 
-      <HeroBanner
-        title={roadmap.title}
-        progress={dashboard.stats.progress}
-      />
+    {/* Hero */}
+    <HeroBanner />
 
-      <div className="grid grid-cols-4 gap-6 mt-8">
-        {stats.map((stat) => (
-          <StatCard
-            key={stat.title}
-            {...stat}
-          />
+    {/* Stats */}
+    <div className="mt-8 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+      {stats.map((stat) => (
+        <StatCard
+          key={stat.title}
+          {...stat}
+        />
+      ))}
+    </div>
 
-        
-        ))}
+    {/* Continue Learning + AI Mentor */}
+    <div className="mt-8 grid gap-6 xl:grid-cols-2">
 
-          <ContinueLearning 
-          lesson={dashboard.currentLesson} 
-          />
+      <ContinueLearning />
 
-      </div>
+      <AIMentorCard />
 
-    </DashboardLayout>
-  );
+    </div>
+
+    {/* Today's Goal + Recent Activity */}
+    <div className="mt-8 grid gap-6 xl:grid-cols-2">
+
+      <TodaysGoal />
+
+      <RecentActivity />
+
+    </div>
+
+  </DashboardLayout>
+);
 }
