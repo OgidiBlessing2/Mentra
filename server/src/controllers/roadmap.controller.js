@@ -5,15 +5,20 @@ import {
 
 export async function generateRoadmap(req, res) {
   try {
-    const userId = null; // Temporary until Clerk
+    const userId = req.user.id;
 
-    const roadmap = await generateRoadmapService(userId, req.body);
+    const roadmap = await generateRoadmapService(
+      userId,
+      req.body
+    );
 
     return res.status(201).json({
       success: true,
       roadmap,
     });
   } catch (error) {
+    console.error(error);
+
     return res.status(500).json({
       success: false,
       message: error.message,

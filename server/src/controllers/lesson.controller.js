@@ -1,4 +1,26 @@
-import { completeLessonService } from "../services/lesson.service.js";
+import {
+  getLessonService,
+  completeLessonService,
+} from "../services/lesson.service.js";
+
+export async function getLesson(req, res) {
+  try {
+    const { id } = req.params;
+
+    const lesson = await getLessonService(id);
+
+    res.json({
+      success: true,
+      lesson,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
 
 export async function completeLesson(req, res) {
   try {
@@ -6,12 +28,13 @@ export async function completeLesson(req, res) {
 
     const lesson = await completeLessonService(id);
 
-    return res.json({
+    res.json({
       success: true,
       lesson,
     });
+
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: error.message,
     });

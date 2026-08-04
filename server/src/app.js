@@ -11,6 +11,8 @@ import mentorRoutes from "./routes/mentor.routes.js";
 import noteRoutes from "./routes/note.routes.js";
 import projectRoutes from "./routes/project.routes.js";
 import flashcardRoutes from "./routes/flashcard.routes.js";
+import { clerkMiddleware } from "@clerk/express";
+
 
 
 dotenv.config();
@@ -21,7 +23,7 @@ app.use(cors());
 
 app.use(express.json());
 
-
+app.use(clerkMiddleware());
 
 
 app.use("/api/health", healthRoutes);
@@ -30,6 +32,7 @@ app.use("/api/lessons", lessonRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/roadmaps", roadmapRoutes);
 app.use("/api/mentor", mentorRoutes);
+
 app.use("/api/notes", noteRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/flashcards", flashcardRoutes);

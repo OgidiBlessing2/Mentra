@@ -7,10 +7,11 @@ import { lessons } from "../db/schema/lesson.js";
 
 export async function getDashboardService(userId) {
   // TODO: Replace limit(1) with a userId filter after authentication
-  const [roadmap] = await db
-    .select()
-    .from(roadmaps)
-    .limit(1);
+ const [roadmap] = await db
+  .select()
+  .from(roadmaps)
+  .where(eq(roadmaps.userId, userId))
+  .limit(1);
 
   if (!roadmap) {
     return {

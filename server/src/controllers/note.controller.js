@@ -6,11 +6,14 @@ import {
   deleteNoteService,
 } from "../services/note.service.js";
 
-const TEST_USER_ID = "test-user-id";
+
+
 
 export async function createNote(req, res) {
+
   try {
-    const note = await createNoteService(TEST_USER_ID, req.body);
+    const userId = req.auth.userId;
+    const note = await createNoteService(userId, req.body);
 
     res.status(201).json({
       success: true,
