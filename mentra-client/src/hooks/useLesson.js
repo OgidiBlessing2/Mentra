@@ -1,18 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
-import { getDashboard } from "../api/dashboard.api";
+import { getLesson } from "../api/lesson.api";
 
-export function useDashboard() {
+export function useLesson(id) {
   const { getToken } = useAuth();
 
   return useQuery({
-    queryKey: ["dashboard"],
+    queryKey: ["lesson", id],
+    enabled: !!id,
+
     queryFn: async () => {
       const token = await getToken();
-
-      console.log("Dashboard token:", token);
-
-      return getDashboard(token);
+      return getLesson(id, token);
     },
   });
 }

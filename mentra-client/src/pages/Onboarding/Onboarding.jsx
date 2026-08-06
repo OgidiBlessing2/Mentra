@@ -2,8 +2,17 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useGenerateRoadmap } from "../../hooks/useGenerateRoadmap";
+import RoadmapGenerating from "../../components/loading/RoadmapGenerating";
+
+
+import { useQueryClient } from "@tanstack/react-query";
+import { getDashboard } from "../../api/dashboard.api";
+
+
+
 
 export default function Onboarding() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
 
 
@@ -17,10 +26,15 @@ const roadmapMutation = useGenerateRoadmap();
 
 
 
+
+
+if (roadmapMutation.isPending) {
+  return <RoadmapGenerating />;
+}
+
+
 async function handleSubmit(e) {
   e.preventDefault();
-
-  console.log("Generate button clicked");
 
   roadmapMutation.mutate(form, {
     onSuccess: () => {

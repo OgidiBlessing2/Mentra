@@ -24,15 +24,36 @@ export default function Dashboard() {
   } = useDashboard();
 
 
- const dashboard = data?.dashboard;
-const roadmap = dashboard?.roadmap;
+  const dashboard = data?.dashboard;
+  const roadmap = dashboard?.currentRoadmap;
+  const currentLesson = dashboard?.currentLesson;
   // Loading
   if (isLoading) {
     return <DashboardLayout>Loading... </DashboardLayout>;
   }
 
-  if (!dashboard?.roadmap) {
-    return <Navigate to="/onboarding" replace />;
+  console.log("Dashboard data:", data);
+console.log("Dashboard object:", dashboard);
+console.log("Roadmap:", dashboard?.roadmap);
+
+ if (!data) {
+  return (
+    <DashboardLayout>
+      Loading dashboard...
+    </DashboardLayout>
+  );
+}
+
+if (!dashboard) {
+  return (
+    <DashboardLayout>
+      Loading dashboard...
+    </DashboardLayout>
+  );
+}
+
+if (!dashboard.currentRoadmap) {
+  return <Navigate to="/onboarding" replace />;
 }
 
   // Error

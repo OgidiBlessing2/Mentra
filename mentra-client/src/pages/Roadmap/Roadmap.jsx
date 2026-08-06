@@ -3,15 +3,20 @@ import { useRoadmap } from "../../hooks/useRoadmap";
 
 import ProgressHeader from "../../components/roadmap/ProgressHeader";
 import ModuleCard from "../../components/roadmap/ModuleCard";
+import { useParams } from "react-router-dom";
+
 
 export default function Roadmap() {
 
-  const {
-    data,
-    loading,
-    error,
-  } = useRoadmap();
+  const { id } = useParams();
 
+const {
+  data,
+  isLoading,
+  error,
+} = useRoadmap(id);
+
+const roadmap = data?.roadmap;
   if (loading) {
     return (
       <DashboardLayout>
@@ -28,7 +33,7 @@ export default function Roadmap() {
     );
   }
 
-  const roadmap = data.roadmap;
+  
 
   return (
     <DashboardLayout>

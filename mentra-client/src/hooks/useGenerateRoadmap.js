@@ -15,21 +15,23 @@ export function useGenerateRoadmap() {
       return generateRoadmap(formData, token);
     },
 
-    onSuccess: () => {
+    onSuccess: (response) => {
       toast.success("Roadmap generated!");
 
+      // Store roadmap instantly
+      queryClient.setQueryData(
+        ["roadmap", response.roadmap.id],
+        response
+      );
+
+      // Force dashboard to refresh
       queryClient.invalidateQueries({
         queryKey: ["dashboard"],
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["roadmap"],
       });
     },
 
     onError: (error) => {
       toast.error(error.message);
-      console.error(error);
     },
   });
 }

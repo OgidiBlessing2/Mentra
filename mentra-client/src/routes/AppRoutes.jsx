@@ -4,7 +4,7 @@ import {
   SignedIn,
   SignedOut,
 } from "@clerk/clerk-react";
-
+import Lesson from "../pages/Lesson/Lesson";
 import Dashboard from "../pages/Dashboard/Dashboard";
 
 // Auth Pages
@@ -51,6 +51,23 @@ export default function AppRoutes() {
             <Onboarding />
         </SignedIn>
     }
+/>
+
+<Route
+  path="/lessons/:id"
+  element={
+    <SignedIn>
+      <Lesson />
+    </SignedIn>
+  }
+/>
+
+<Route
+
+  path="/quiz/:lessonId"
+
+  element={<Quiz />}
+
 />
 
       {/* Temporary */}

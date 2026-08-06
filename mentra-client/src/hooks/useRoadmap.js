@@ -1,36 +1,19 @@
-import { useEffect, useState } from "react";
-import api from "../lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@clerk/clerk-react";
+import { getRoadmap } from "../api/roadmap.api";
 
-export function useRoadmap() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+export function useRoadmap(id) {
+  const { getToken } = useAuth();
 
-  useEffect(() => {
-    async function fetchRoadmap() {
-      try {
-        const roadmapId = localStorage.getItem("roadmapId");
+  return useQuery({
+    queryKey: ["roadmap", id],
 
-        if (!roadmapId) {
-          throw new Error("No roadmap found.");
-        }
+    enabled: !!id,
 
-        const res = await api.get(`/roadmaps/${roadmapId}`);
+    queryFn: async () => {
+      const token = await getToken();
 
-        setData(res.data);
-      } catch (err) {
-        setError(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchRoadmap();
-  }, []);
-
-  return {
-    data,
-    loading,
-    error,
-  };
+      return getRoadmap(id, token);
+    },
+  });
 }

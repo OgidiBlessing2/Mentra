@@ -1,71 +1,133 @@
-import { ArrowRight, Clock } from "lucide-react";
-
+import { BookOpen, Clock, ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useDashboard } from "../../hooks/useDashboard";
 export default function ContinueLearning() {
+  const navigate = useNavigate();
+
+const { data, isLoading } = useDashboard();
+
+const lesson = data?.dashboard?.currentLesson;
+if (isLoading) {
   return (
-    <div className="rounded-[30px] border border-white/10 bg-[#18181B] p-8">
+    <div className="rounded-3xl bg-[#18181B] p-8">
+      Loading current lesson...
+    </div>
+  );
+}
 
-      <div className="flex items-center justify-between">
+if (!lesson) {
+  return (
+    <div className="rounded-3xl bg-[#18181B] p-8 text-slate-400">
+      No current lesson found.
+    </div>
+  );
+}
 
-        <div>
+if (isLoading) {
+  return (
+    <div className="rounded-3xl bg-[#18181B] p-8">
+      Loading current lesson...
+    </div>
+  );
+}
 
-          <p className="text-slate-400">
+  return (
+    <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-[#18181B] p-8 transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/40">
+
+      {/* Background Glow */}
+
+      <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-emerald-500/10 blur-3xl transition group-hover:bg-emerald-500/20" />
+
+      <div className="relative">
+
+        <div className="flex items-center justify-between">
+
+          <h2 className="text-xl font-bold text-white">
 
             Continue Learning
 
-          </p>
-
-          <h2 className="mt-2 text-3xl font-black text-white">
-
-            Python Variables
-
           </h2>
 
+          <div className="rounded-full bg-emerald-500/15 px-3 py-1 text-sm font-semibold text-emerald-400">
+
+            {lesson.progress}%
+
+          </div>
+
         </div>
 
-        <div className="rounded-2xl bg-violet-600/20 p-4">
+        <div className="mt-8">
 
-          <Clock
-            className="text-violet-400"
-            size={28}
-          />
+          <h3 className="text-2xl font-bold text-white">
+
+            {lesson.title}
+
+          </h3>
+
+          <p className="mt-2 text-slate-400">
+
+            {lesson.module}
+
+          </p>
+
+        </div>
+
+        {/* Progress */}
+
+        <div className="mt-8">
+
+          <div className="h-3 overflow-hidden rounded-full bg-[#2A2A2A]">
+
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 transition-all duration-700"
+              style={{
+                width: `${lesson.progress}%`,
+              }}
+            />
+
+          </div>
+
+        </div>
+
+        {/* Footer */}
+
+        <div className="mt-8 flex items-center justify-between">
+
+          <div className="space-y-2">
+
+            <div className="flex items-center gap-2 text-slate-400">
+
+              <Clock size={16} />
+
+              {lesson.duration} mins
+
+            </div>
+
+            <div className="flex items-center gap-2 text-slate-400">
+
+              <BookOpen size={16} />
+
+              Lesson {lesson.lessonNumber} of {lesson.totalLessons}
+
+            </div>
+
+          </div>
+
+          <button
+            onClick={() =>
+              navigate(`/lessons/${lesson.id}`)
+            }
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-6 py-3 font-semibold text-white transition hover:scale-105"
+          >
+            Resume
+
+            <ArrowRight size={18} />
+
+          </button>
 
         </div>
 
       </div>
-
-      <div className="mt-8">
-
-        <div className="flex justify-between mb-3">
-
-          <span className="text-slate-400">
-
-            Progress
-
-          </span>
-
-          <span className="text-white">
-
-            75%
-
-          </span>
-
-        </div>
-
-        <div className="h-3 rounded-full bg-[#262626]">
-
-          <div className="h-full w-3/4 rounded-full bg-gradient-to-r from-violet-500 to-cyan-500" />
-
-        </div>
-
-      </div>
-
-      <button className="mt-8 flex items-center gap-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-4 text-white font-semibold hover:scale-105 transition">
-
-        Continue Lesson
-
-        <ArrowRight size={20} />
-
-      </button>
 
     </div>
   );
