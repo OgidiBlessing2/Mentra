@@ -1,57 +1,52 @@
-import {
-  buildChatPrompt,
-  buildExplainPrompt,
-  buildQuizPrompt,
-} from "../prompts/mentor.prompt.js";
+import { eq } from "drizzle-orm";
+
+import { db } from "../db/index.js";
+
+import { lessons } from "../db/schema/lesson.js";
+import { lessonContents } from "../db/schema/lessonContents.js";
+
+import { buildMentorPrompt } from "../prompts/mentor.prompt.js";
 
 import { generateRoadmap } from "./ai.service.js";
 
-export async function chatService(message) {
-  const prompt = buildChatPrompt(message);
+export async function chatWithMentor(
+  lessonId,
+  question
+) {
 
-  const reply = await generateRoadmap(prompt);
+  // Get lesson
+  const [lesson] = await db
+    .select()
+    .from(lessons)
+    .where(eq(lessons.id, lessonId));
 
-  return reply.replace(/\\n/g, "\n");
-}
+  if (!lesson) {
+    throw new Error("Lesson not found");
+  }
 
-export async function explainService(topic) {
-  const prompt = buildExplainPrompt(topic);
-  const reply =  await generateRoadmap(prompt);
-  return reply.replace(/\\n/g, "\n");
-}
+  // Get generated lesson content
+  const [content] = await db
+    .select()
+    .from(lessonContents)
+    .where(eq(lessonContents.lessonId, lessonId));
 
-export async function quizService(topic) {
-  const prompt = buildQuizPrompt(topic);
+  if (!content) {
+    throw new Error(
+      "Lesson content not found"
+    );
+  }
 
-  const result = await generateRoadmap(prompt);
-
-  return JSON.parse(result);
-}
-
-export async function submitQuizService(questions, userAnswers) {
-  let score = 0;
-
-  const results = questions.map((question, index) => {
-    const isCorrect =
-      question.answer.trim().toLowerCase() ===
-      userAnswers[index].trim().toLowerCase();
-
-    if (isCorrect) {
-      score++;
-    }
-
-    return {
-      question: question.question,
-      correct: isCorrect,
-      correctAnswer: question.answer,
-      userAnswer: userAnswers[index],
-    };
+  // Build prompt
+  const prompt = buildMentorPrompt({
+    lesson,
+    content,
+    question,
   });
 
+  // Ask Gemini
+  const answer = await generateRoadmap(prompt);
+
   return {
-    score,
-    total: questions.length,
-    percentage: Math.round((score / questions.length) * 100),
-    results,
+    answer,
   };
 }

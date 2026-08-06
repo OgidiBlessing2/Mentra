@@ -43,6 +43,13 @@
       "when": 1785553749858,
       "tag": "0005_optimal_namorita",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785931073578,
+      "tag": "0006_fair_prodigy",
+      "breakpoints": true
     }
   ]
 }

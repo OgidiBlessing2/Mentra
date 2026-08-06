@@ -1,21 +1,16 @@
+
 import { Router } from "express";
 
-import {
-  chat,
-  explain,
-  quiz,
-  submitQuiz,
-} from "../controllers/mentor.controller.js";
-
-import { aiRateLimiter } from "../middlewares/rateLimiter.js";
 import { protect } from "../middlewares/auth.middleware.js";
+
+import { chat } from "../controllers/mentor.controller.js";
 
 const router = Router();
 
-router.post("/chat", aiRateLimiter, protect, chat);
-router.post("/quiz", aiRateLimiter, protect, quiz);
-
-router.post("/explain", aiRateLimiter, protect,  explain);
-router.post("/quiz/submit", aiRateLimiter, protect, submitQuiz);
+router.post(
+  "/chat",
+  protect,
+  chat
+);
 
 export default router;

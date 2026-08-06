@@ -1,6 +1,6 @@
 import { and, eq, gt, asc } from "drizzle-orm";
 import { db } from "../db/index.js";
-
+import { getLessonContent } from "./lessonContent.service.js";
 import { lessons } from "../db/schema/lesson.js";
 import { modules } from "../db/schema/modules.js";
 import { roadmaps } from "../db/schema/roadmaps.js";
@@ -26,9 +26,74 @@ export async function getLessonService(id) {
     .from(modules)
     .where(eq(modules.id, lesson.moduleId));
 
+    const content = await getLessonContent(lesson.id);
+
   return {
-    ...lesson,
+  ...lesson,
+
+  module,
+
+  content,
+};
+}
+
+// current lesson 
+export async function getCurrentLessonService(userId) {
+
+   try {
+    console.log("req.user:", req.user);
+
+    const lesson = await getCurrentLessonService(req.user.id);
+
+    res.json({
+      success: true,
+      lesson,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+  // Find the user's current roadmap
+  const [roadmap] = await db
+    .select()
+    .from(roadmaps)
+    .where(eq(roadmaps.userId, userId))
+    .limit(1);
+
+  if (!roadmap) {
+    throw new Error("No roadmap found");
+  }
+
+  // Find the current module
+  const [module] = await db
+    .select()
+    .from(modules)
+    .where(eq(modules.id, roadmap.currentModule));
+
+  if (!module) {
+    throw new Error("No active module found");
+  }
+
+  // Find the active lesson
+ const activeLesson = await db.query.lessons.findFirst({
+  where: (l, { and, eq }) =>
+    and(
+      eq(l.moduleId, module.id),
+      eq(l.status, "active")
+    ),
+});
+
+if (!activeLesson) {
+  throw new Error("No active lesson");
+}
+  return {
+    ...activeLesson,
     module,
+    roadmap,
   };
 }
 
