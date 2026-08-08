@@ -15,3 +15,12 @@ export async function generateRoadmap(prompt) {
 
   return response.text;
 }
+
+export async function generateText(prompt) {
+  const response = await ai.models.generateContent({
+    model: "gemini-3.6-flash",
+    contents: prompt,
+  });
+
+  return response.text;
+}

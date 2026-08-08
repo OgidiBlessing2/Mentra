@@ -24,6 +24,7 @@ export async function getLesson(req, res) {
 }
 }
 
+
 export async function getCurrentLesson(req, res) {
   try {
     const lesson = await getCurrentLessonService(req.user.id);

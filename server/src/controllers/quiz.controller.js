@@ -1,4 +1,7 @@
-import { generateQuizService } from "../services/quiz.service.js";
+import {
+  generateQuizService,
+  submitQuizService,
+} from "../services/quiz.service.js";
 
 export async function generateQuiz(req, res) {
   try {
@@ -10,9 +13,42 @@ export async function generateQuiz(req, res) {
       success: true,
       quiz,
     });
+  } catch (error) {
+    console.error("GENERATE QUIZ ERROR:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
+
+export async function submitQuiz(req, res) {
+  try {
+    const { quizId } = req.params;
+    const { answers } = req.body;
+
+    // Clerk user ID
+    const userId = req.auth.userId;
+
+    console.log("✅ SUBMIT QUIZ CONTROLLER");
+    console.log("Quiz:", quizId);
+    console.log("User:", userId);
+    console.log("Answers:", answers);
+
+    const result = await submitQuizService(
+      quizId,
+      answers,
+      userId
+    );
+
+    res.json({
+      success: true,
+      result,
+    });
 
   } catch (error) {
-    console.error(error);
+    console.error("❌ SUBMIT QUIZ ERROR:", error);
 
     res.status(500).json({
       success: false,

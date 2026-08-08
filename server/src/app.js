@@ -12,7 +12,7 @@ import noteRoutes from "./routes/note.routes.js";
 import projectRoutes from "./routes/project.routes.js";
 import flashcardRoutes from "./routes/flashcard.routes.js";
 import { clerkMiddleware } from "@clerk/express";
-import quizRoutes from "./routes/quiz.routes.js";
+import quizRoutes from "./routes/quiz.route.js";
 
 dotenv.config();
 
@@ -35,8 +35,6 @@ app.use("/api/quizzes", quizRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/flashcards", flashcardRoutes);
-
-
 
 
 export default app;

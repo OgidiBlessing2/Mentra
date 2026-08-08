@@ -1,8 +1,10 @@
 import { Router } from "express";
+import { protect } from "../middlewares/auth.middleware.js";
 
-import { protect } from "../middleware/auth.middleware.js";
-
-import { generateQuiz } from "../controllers/quiz.controller.js";
+import {
+  generateQuiz,
+  submitQuiz,
+} from "../controllers/quiz.controller.js";
 
 const router = Router();
 
@@ -10,6 +12,12 @@ router.post(
   "/generate/:lessonId",
   protect,
   generateQuiz
+);
+
+router.post(
+  "/submit/:quizId",
+  protect,
+  submitQuiz
 );
 
 export default router;

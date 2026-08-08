@@ -1,86 +1,271 @@
+
 import { db } from "../db/index.js";
 
 import { quizzes } from "../db/schema/quizzes.js";
-
 import { quizQuestions } from "../db/schema/quizQuestions.js";
-
 import { lessons } from "../db/schema/lesson.js";
-
+import { quizAttempts } from "../db/schema/quizAttempts.js";
 import { eq } from "drizzle-orm";
 
-import { generateText } from "../ai/gemini.js";
+import { generateText } from "./ai.service.js";
+import { getLessonContent } from "./lessonContent.service.js";
 
 import { buildQuizPrompt } from "../prompts/quiz.prompt.js";
 
-export async function generateQuizService(
-  lessonId
-) {
-	const [existingQuiz] = await db
-	  .select()
-	  .from(quizzes)
-	  .where(eq(quizzes.lessonId, lessonId));
+export async function generateQuizService(lessonId) {
+  // --------------------------------------------------
+  // Check if quiz already exists
+  // --------------------------------------------------
 
-	if (existingQuiz) {
-	  const questions = await db
-	    .select()
-	    .from(quizQuestions)
-	    .where(eq(quizQuestions.quizId, existingQuiz.id));
+  const [existingQuiz] = await db
+    .select()
+    .from(quizzes)
+    .where(eq(quizzes.lessonId, lessonId));
 
-	  return {
-	    ...existingQuiz,
-	    questions,
-	  };
-	}
+  if (existingQuiz) {
+    const questions = await db
+      .select()
+      .from(quizQuestions)
+      .where(eq(quizQuestions.quizId, existingQuiz.id));
 
-	const [lesson] = await db
-	  .select()
-	  .from(lessons)
-	  .where(eq(lessons.id, lessonId));
+    return {
+      ...existingQuiz,
+      questions,
+    };
+  }
 
-	if (!lesson) {
-	  throw new Error("Lesson not found");
-	}
+  // --------------------------------------------------
+  // Get lesson
+  // --------------------------------------------------
 
-	const prompt = buildQuizPrompt(lesson);
-	const response = await generateText(prompt);
-	const quiz = JSON.parse(response);
+  const [lesson] = await db
+    .select()
+    .from(lessons)
+    .where(eq(lessons.id, lessonId));
 
-	const [newQuiz] = await db
-  .insert(quizzes)
+  if (!lesson) {
+    throw new Error("Lesson not found");
+  }
+
+  // --------------------------------------------------
+  // Get the actual lesson content
+  // --------------------------------------------------
+
+  const content = await getLessonContent(lesson.id);
+
+  if (!content) {
+    throw new Error("Lesson content not found");
+  }
+
+  // --------------------------------------------------
+  // Build quiz prompt
+  // --------------------------------------------------
+
+  const prompt = buildQuizPrompt({
+    ...lesson,
+    content,
+  });
+
+  console.log("Generating quiz for:", lesson.title);
+
+  // --------------------------------------------------
+  // Generate quiz with AI
+  // --------------------------------------------------
+
+  const response = await generateText(prompt);
+
+  console.log("Gemini quiz response:");
+  console.log(response);
+
+  // --------------------------------------------------
+  // Clean AI response
+  // --------------------------------------------------
+
+  const cleanedResponse = response
+    .replace(/```json/g, "")
+    .replace(/```/g, "")
+    .trim();
+
+  let quiz;
+
+  try {
+    quiz = JSON.parse(cleanedResponse);
+  } catch (error) {
+    console.error("Failed to parse Gemini quiz response:");
+    console.error(cleanedResponse);
+
+    throw new Error("AI returned invalid quiz JSON");
+  }
+
+  // --------------------------------------------------
+  // Validate quiz
+  // --------------------------------------------------
+
+  if (
+    !quiz ||
+    !Array.isArray(quiz.questions) ||
+    quiz.questions.length === 0
+  ) {
+    throw new Error("AI returned an invalid quiz");
+  }
+
+  // --------------------------------------------------
+  // Create quiz
+  // --------------------------------------------------
+
+  const [newQuiz] = await db
+    .insert(quizzes)
+    .values({
+      lessonId,
+    })
+    .returning();
+
+  // --------------------------------------------------
+  // Save questions
+  // --------------------------------------------------
+
+  for (const question of quiz.questions) {
+    if (
+      !question.question ||
+      !Array.isArray(question.options) ||
+      question.options.length < 4 ||
+      !question.correctAnswer
+    ) {
+      continue;
+    }
+
+    await db
+      .insert(quizQuestions)
+      .values({
+        quizId: newQuiz.id,
+
+        question: question.question,
+
+        optionA: question.options[0],
+
+        optionB: question.options[1],
+
+        optionC: question.options[2],
+
+        optionD: question.options[3],
+
+        correctAnswer: question.correctAnswer,
+
+        explanation: question.explanation || "",
+      });
+  }
+
+  // --------------------------------------------------
+  // Get saved questions
+  // --------------------------------------------------
+
+  const savedQuestions = await db
+    .select()
+    .from(quizQuestions)
+    .where(eq(quizQuestions.quizId, newQuiz.id));
+
+  return {
+    ...newQuiz,
+    questions: savedQuestions,
+  };
+}
+
+export async function submitQuizService(quizId, answers, userId)  {
+
+ 
+  // --------------------------------------------------
+  // Get quiz
+  // --------------------------------------------------
+
+  const [quiz] = await db
+    .select()
+    .from(quizzes)
+    .where(eq(quizzes.id, quizId));
+
+  if (!quiz) {
+    throw new Error("Quiz not found");
+  }
+
+  // --------------------------------------------------
+  // Get quiz questions
+  // --------------------------------------------------
+
+  const questions = await db
+    .select()
+    .from(quizQuestions)
+    .where(eq(quizQuestions.quizId, quizId));
+
+  if (!questions.length) {
+    throw new Error("No questions found for this quiz");
+  }
+
+  // --------------------------------------------------
+  // Check answers
+  // --------------------------------------------------
+
+  let score = 0;
+
+  const results = questions.map((question) => {
+    const submittedAnswer = answers.find(
+      (answer) =>
+        answer.questionId === question.id
+    );
+
+    const selectedAnswer =
+      submittedAnswer?.answer ?? null;
+
+    const isCorrect =
+      selectedAnswer === question.correctAnswer;
+
+    if (isCorrect) {
+      score++;
+    }
+
+    return {
+      questionId: question.id,
+      question: question.question,
+
+      optionA: question.optionA,
+      optionB: question.optionB,
+      optionC: question.optionC,
+      optionD: question.optionD,
+
+      selectedAnswer,
+      correctAnswer: question.correctAnswer,
+
+      isCorrect,
+
+      explanation: question.explanation,
+    };
+  });
+
+  // --------------------------------------------------
+  // Calculate score
+  // --------------------------------------------------
+
+const totalQuestions = questions.length;
+
+const percentage = Math.round(
+  (score / totalQuestions) * 100
+);
+
+const [attempt] = await db
+  .insert(quizAttempts)
   .values({
-    lessonId,
+    quizId,
+    userId,
+    score,
+    totalQuestions,
+    percentage,
   })
   .returning();
 
-  for (const question of quiz.questions) {
-  await db.insert(quizQuestions).values({
-    quizId: newQuiz.id,
-
-    question: question.question,
-
-    optionA: question.options[0],
-
-    optionB: question.options[1],
-
-    optionC: question.options[2],
-
-    optionD: question.options[3],
-
-    correctAnswer: question.correctAnswer,
-
-    explanation: question.explanation,
-  });
-}
-
-const savedQuestions = await db
-  .select()
-  .from(quizQuestions)
-  .where(eq(quizQuestions.quizId, newQuiz.id));
-
 return {
-  ...newQuiz,
-  questions: savedQuestions,
+  quizId,
+  score,
+  totalQuestions,
+  percentage,
+  attemptId: attempt.id,
+  results,
 };
-
-
 }

@@ -1,4 +1,4 @@
-import { and, eq, gt, asc } from "drizzle-orm";
+import { and, eq, gt, asc, count } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { getLessonContent } from "./lessonContent.service.js";
 import { lessons } from "../db/schema/lesson.js";
@@ -26,15 +26,24 @@ export async function getLessonService(id) {
     .from(modules)
     .where(eq(modules.id, lesson.moduleId));
 
-    const content = await getLessonContent(lesson.id);
+  const content = await getLessonContent(lesson.id);
+
+  const [lessonCount] = await db
+    .select({
+      total: count(),
+    })
+    .from(lessons)
+    .where(eq(lessons.moduleId, lesson.moduleId));
 
   return {
-  ...lesson,
-
-  module,
-
-  content,
-};
+    ...lesson,
+    module,
+    content,
+    progress: {
+      current: lesson.order,
+      total: Number(lessonCount.total),
+    },
+  };
 }
 
 // current lesson 
@@ -173,45 +182,43 @@ export async function completeLessonService(id) {
       .limit(1);
 
     // Unlock next module
-    if (nextModule) {
+  if (nextModule) {
+  await tx
+    .update(modules)
+    .set({
+      status: "active",
+    })
+    .where(eq(modules.id, nextModule.id));
 
-      await tx
-        .update(modules)
-        .set({
-          status: "active",
-        })
-        .where(eq(modules.id, nextModule.id));
+  const [firstLesson] = await tx
+    .select()
+    .from(lessons)
+    .where(eq(lessons.moduleId, nextModule.id))
+    .orderBy(asc(lessons.order))
+    .limit(1);
 
-      // First lesson of next module
-      const [firstLesson] = await tx
-        .select()
-        .from(lessons)
-        .where(eq(lessons.moduleId, nextModule.id))
-        .orderBy(asc(lessons.order))
-        .limit(1);
+  if (firstLesson) {
+    await tx
+      .update(lessons)
+      .set({
+        status: "active",
+      })
+      .where(eq(lessons.id, firstLesson.id));
+  }
 
-      if (firstLesson) {
-        await tx
-          .update(lessons)
-          .set({
-            status: "active",
-          })
-          .where(eq(lessons.id, firstLesson.id));
-      }
+  await tx
+    .update(roadmaps)
+    .set({
+      currentModule: nextModule.id,
+    })
+    .where(eq(roadmaps.id, currentModule.roadmapId));
 
-      // Update current module on roadmap
-      await tx
-        .update(roadmaps)
-        .set({
-          currentModule: nextModule.id,
-        })
-        .where(eq(roadmaps.id, currentModule.roadmapId));
-
-      return {
-        message: "Module completed",
-        nextModule,
-      };
-    }
+  return {
+    message: "Module completed",
+    nextModule,
+    nextLesson: firstLesson,
+  };
+}
 
     return {
       message: "Roadmap completed 🎉",

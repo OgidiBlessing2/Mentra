@@ -7,8 +7,8 @@ import {
 import { protect } from "../middlewares/auth.middleware.js";
 const router = Router();
 
-router.get("/:id",protect,  getLesson);
 router.get("/current", protect, getCurrentLesson);
-router.patch("/:id/complete",protect, completeLesson);
+router.get("/:id", protect, getLesson);
+router.patch("/:id/complete", protect, completeLesson);
 
 export default router;
