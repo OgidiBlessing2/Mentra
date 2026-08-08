@@ -11,6 +11,7 @@ import { getDashboard } from "../../api/dashboard.api";
 
 
 
+
 export default function Onboarding() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();

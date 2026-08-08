@@ -36,26 +36,20 @@ const completeMutation =
   console.log(data)
 
   async function handleComplete() {
-
   completeMutation.mutate(id, {
-
     onSuccess: (response) => {
+      console.log("Lesson completion:", response);
 
-      const nextLesson =
-        response?.nextLesson;
-
-      if (nextLesson) {
-
-        navigate(`/lessons/${nextLesson.id}`);
-
+      if (response?.nextLesson?.id) {
+        navigate(`/lessons/${response.nextLesson.id}`);
+        return;
       }
 
+      // Entire roadmap completed
+      navigate("/dashboard");
     },
-
   });
-
 }
-
 async function askMentor() {
 
   if (!question.trim()) return;
@@ -210,16 +204,22 @@ async function askMentor() {
 
               <div className="mt-6 h-3 rounded-full bg-[#2A2A2A]">
 
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500"
-                  style={{ width: "40%" }}
-                />
+               <div
+  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 transition-all duration-500"
+  style={{
+    width: `${
+      ((data?.progress?.current || 0) /
+        (data?.progress?.total || 1)) *
+      100
+    }%`,
+  }}
+/>
 
               </div>
 
               <p className="mt-4 text-sm text-slate-400">
-                Lesson 3 of 6
-              </p>
+  Lesson {data?.progress?.current} of {data?.progress?.total}
+</p>
 
             </div>
 
@@ -252,11 +252,15 @@ async function askMentor() {
   📝 Take Quiz
 </button>
 
-            <button
-              className="w-full rounded-2xl border border-white/10 py-4 font-bold text-white transition hover:bg-white/5"
-            >
-              Next Lesson →
-            </button>
+          <button
+  onClick={handleComplete}
+  disabled={completeMutation.isPending}
+  className="w-full rounded-2xl border border-white/10 py-4 font-bold text-white transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+>
+  {completeMutation.isPending
+    ? "Loading next lesson..."
+    : "Next Lesson →"}
+</button>
 
           </div>
 

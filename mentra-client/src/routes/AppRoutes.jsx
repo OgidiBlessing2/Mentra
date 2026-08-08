@@ -6,6 +6,7 @@ import {
 } from "@clerk/clerk-react";
 import Lesson from "../pages/Lesson/Lesson";
 import Dashboard from "../pages/Dashboard/Dashboard";
+import Quiz from "../pages/Dashboard/Quiz";
 
 // Auth Pages
 import SignInPage from "../pages/Auth/SignInPage";
@@ -56,18 +57,31 @@ export default function AppRoutes() {
 <Route
   path="/lessons/:id"
   element={
-    <SignedIn>
-      <Lesson />
-    </SignedIn>
+    <>
+      <SignedIn>
+        <Lesson />
+      </SignedIn>
+
+      <SignedOut>
+        <Navigate to="/sign-in" replace />
+      </SignedOut>
+    </>
   }
 />
 
 <Route
-
   path="/quiz/:lessonId"
+  element={
+    <>
+      <SignedIn>
+        <Quiz />
+      </SignedIn>
 
-  element={<Quiz />}
-
+      <SignedOut>
+        <Navigate to="/sign-in" replace />
+      </SignedOut>
+    </>
+  }
 />
 
       {/* Temporary */}
