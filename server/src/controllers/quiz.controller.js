@@ -22,31 +22,28 @@ export async function generateQuiz(req, res) {
     });
   }
 }
-
 export async function submitQuiz(req, res) {
   try {
     const { quizId } = req.params;
     const { answers } = req.body;
 
-    // Clerk user ID
-    const userId = req.auth.userId;
+    const userId = req.user.id;
 
     console.log("✅ SUBMIT QUIZ CONTROLLER");
     console.log("Quiz:", quizId);
     console.log("User:", userId);
     console.log("Answers:", answers);
 
-    const result = await submitQuizService(
-      quizId,
-      answers,
-      userId
-    );
+   const result = await submitQuizService(
+  quizId,
+  userId,
+  answers
+);
 
     res.json({
       success: true,
       result,
     });
-
   } catch (error) {
     console.error("❌ SUBMIT QUIZ ERROR:", error);
 

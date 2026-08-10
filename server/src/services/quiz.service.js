@@ -170,25 +170,36 @@ export async function generateQuizService(lessonId) {
   };
 }
 
-export async function submitQuizService(quizId, answers, userId)  {
+export async function submitQuizService(
+  quizId,
+  userId,
+  answers
+) {
+  // -----------------------------------------
+  // Validate answers
+  // -----------------------------------------
 
- 
-  // --------------------------------------------------
+  if (!Array.isArray(answers)) {
+    throw new Error("Answers must be an array");
+  }
+
+  // -----------------------------------------
   // Get quiz
-  // --------------------------------------------------
+  // -----------------------------------------
 
   const [quiz] = await db
     .select()
     .from(quizzes)
-    .where(eq(quizzes.id, quizId));
+    .where(eq(quizzes.id, quizId))
+    .limit(1);
 
   if (!quiz) {
     throw new Error("Quiz not found");
   }
 
-  // --------------------------------------------------
+  // -----------------------------------------
   // Get quiz questions
-  // --------------------------------------------------
+  // -----------------------------------------
 
   const questions = await db
     .select()
@@ -199,9 +210,9 @@ export async function submitQuizService(quizId, answers, userId)  {
     throw new Error("No questions found for this quiz");
   }
 
-  // --------------------------------------------------
-  // Check answers
-  // --------------------------------------------------
+  // -----------------------------------------
+  // Calculate score
+  // -----------------------------------------
 
   let score = 0;
 
@@ -212,10 +223,15 @@ export async function submitQuizService(quizId, answers, userId)  {
     );
 
     const selectedAnswer =
-      submittedAnswer?.answer ?? null;
+      submittedAnswer?.answer != null
+        ? Number(submittedAnswer.answer)
+        : null;
+
+    const correctAnswer =
+      Number(question.correctAnswer);
 
     const isCorrect =
-      selectedAnswer === question.correctAnswer;
+      selectedAnswer === correctAnswer;
 
     if (isCorrect) {
       score++;
@@ -231,41 +247,50 @@ export async function submitQuizService(quizId, answers, userId)  {
       optionD: question.optionD,
 
       selectedAnswer,
-      correctAnswer: question.correctAnswer,
+      correctAnswer,
 
       isCorrect,
 
-      explanation: question.explanation,
+      explanation:
+        question.explanation || "",
     };
   });
 
-  // --------------------------------------------------
-  // Calculate score
-  // --------------------------------------------------
+  // -----------------------------------------
+  // Calculate percentage
+  // -----------------------------------------
 
-const totalQuestions = questions.length;
+  const totalQuestions = questions.length;
 
-const percentage = Math.round(
-  (score / totalQuestions) * 100
-);
+  const percentage = Math.round(
+    (score / totalQuestions) * 100
+  );
 
-const [attempt] = await db
-  .insert(quizAttempts)
-  .values({
+  // -----------------------------------------
+  // Save quiz attempt
+  // -----------------------------------------
+
+  const [attempt] = await db
+    .insert(quizAttempts)
+    .values({
+      quizId,
+      userId,
+      score,
+      totalQuestions,
+      percentage,
+    })
+    .returning();
+
+  // -----------------------------------------
+  // Return result
+  // -----------------------------------------
+
+  return {
     quizId,
-    userId,
     score,
     totalQuestions,
     percentage,
-  })
-  .returning();
-
-return {
-  quizId,
-  score,
-  totalQuestions,
-  percentage,
-  attemptId: attempt.id,
-  results,
-};
+    attemptId: attempt.id,
+    results,
+  };
 }

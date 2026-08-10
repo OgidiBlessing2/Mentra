@@ -13,7 +13,6 @@ import projectRoutes from "./routes/project.routes.js";
 import flashcardRoutes from "./routes/flashcard.routes.js";
 import { clerkMiddleware } from "@clerk/express";
 import quizRoutes from "./routes/quiz.route.js";
-
 dotenv.config();
 
 const app = express();

@@ -1,12 +1,12 @@
 import {
   pgTable,
   uuid,
-  text,
   integer,
   timestamp,
 } from "drizzle-orm/pg-core";
 
 import { quizzes } from "./quizzes.js";
+import { users } from "./users.js";
 
 export const quizAttempts = pgTable("quiz_attempts", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -17,7 +17,11 @@ export const quizAttempts = pgTable("quiz_attempts", {
     })
     .notNull(),
 
-  userId: text("user_id").notNull(),
+  userId: uuid("user_id")
+    .references(() => users.id, {
+      onDelete: "cascade",
+    })
+    .notNull(),
 
   score: integer("score").notNull(),
 

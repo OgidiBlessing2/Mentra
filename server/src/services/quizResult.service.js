@@ -13,18 +13,11 @@ export async function submitQuizService(
   userId,
   answers
 ) {
-  // -----------------------------------------
-  // Validate answers
-  // -----------------------------------------
-
   if (!Array.isArray(answers)) {
     throw new Error("Answers must be an array");
   }
 
-  // -----------------------------------------
-  // Check that quiz exists
-  // -----------------------------------------
-
+  // Find quiz
   const [quiz] = await db
     .select()
     .from(quizzes)
@@ -35,181 +28,89 @@ export async function submitQuizService(
     throw new Error("Quiz not found");
   }
 
-  // -----------------------------------------
-  // Get quiz questions
-  // -----------------------------------------
-
+  // Get questions
   const questions = await db
     .select()
     .from(quizQuestions)
-    .where(
-      eq(
-        quizQuestions.quizId,
-        quizId
-      )
-    );
+    .where(eq(quizQuestions.quizId, quizId));
 
   if (questions.length === 0) {
-    throw new Error(
-      "This quiz has no questions"
-    );
+    throw new Error("This quiz has no questions");
   }
 
-  // -----------------------------------------
   // Calculate score
-  // -----------------------------------------
-
   let score = 0;
 
   for (const question of questions) {
     const submittedAnswer = answers.find(
-      (answer) =>
-        answer.questionId ===
-        question.id
+      (answer) => answer.questionId === question.id
     );
 
-    if (!submittedAnswer) {
-      continue;
-    }
-
     if (
+      submittedAnswer &&
       Number(submittedAnswer.answer) ===
-      Number(question.correctAnswer)
+        Number(question.correctAnswer)
     ) {
       score++;
     }
   }
 
+  const totalQuestions = questions.length;
 
-const review = questions.map((question) => {
-  const submittedAnswer = answers.find(
-    (answer) =>
-      answer.questionId === question.id
+  const percentage = Math.round(
+    (score / totalQuestions) * 100
   );
 
-  const userAnswer = submittedAnswer
-    ? Number(submittedAnswer.answer)
-    : null;
+  // Build answer review
+  const review = questions.map((question) => {
+    const submittedAnswer = answers.find(
+      (answer) => answer.questionId === question.id
+    );
 
-  const correctAnswer =
-    Number(question.correctAnswer);
+    const userAnswer = submittedAnswer
+      ? Number(submittedAnswer.answer)
+      : null;
 
-  return {
-    questionId: question.id,
-    question: question.question,
+    const correctAnswer =
+      Number(question.correctAnswer);
 
-    optionA: question.optionA,
-    optionB: question.optionB,
-    optionC: question.optionC,
-    optionD: question.optionD,
+    return {
+      questionId: question.id,
+      question: question.question,
 
-    userAnswer,
-    correctAnswer,
+      optionA: question.optionA,
+      optionB: question.optionB,
+      optionC: question.optionC,
+      optionD: question.optionD,
 
-    isCorrect:
-      userAnswer === correctAnswer,
+      userAnswer,
+      correctAnswer,
 
-    explanation:
-      question.explanation,
-  };
-});
+      isCorrect:
+        userAnswer === correctAnswer,
 
-return {
-  id: result.id,
+      explanation: question.explanation,
+    };
+  });
 
-  quizId,
-
-  score: result.score,
-
-  totalQuestions:
-    result.totalQuestions,
-
-  percentage: Math.round(
-    (result.score /
-      result.totalQuestions) *
-      100
-  ),
-
-  review,
-};
-
-  
-// -----------------------------------------
-// Check for existing result
-// -----------------------------------------
-
-const [existingResult] = await db
-  .select()
-  .from(quizResults)
-  .where(
-    and(
-      eq(quizResults.quizId, quizId),
-      eq(quizResults.userId, userId)
-    )
-  )
-  .limit(1);
-
-
-// -----------------------------------------
-// Save or update result
-// -----------------------------------------
-
-let result;
-
-if (existingResult) {
-  const bestScore = Math.max(
-    existingResult.score,
-    score
-  );
-
-  [result] = await db
-    .update(quizResults)
-    .set({
-      score: bestScore,
-      totalQuestions: questions.length,
-    })
-    .where(
-      eq(
-        quizResults.id,
-        existingResult.id
-      )
-    )
-    .returning();
-} else {
-  [result] = await db
-    .insert(quizResults)
+  // Save quiz attempt
+  const [attempt] = await db
+    .insert(quizAttempts)
     .values({
       quizId,
       userId,
       score,
-      totalQuestions: questions.length,
+      totalQuestions,
+      percentage,
     })
     .returning();
+
+  return {
+    id: attempt.id,
+    quizId,
+    score,
+    totalQuestions,
+    percentage,
+    review,
+  };
 }
-
-
-// -----------------------------------------
-// Return result
-// -----------------------------------------
-
-return {
-  id: result.id,
-
-  quizId,
-
-  score: result.score,
-
-  totalQuestions:
-    result.totalQuestions,
-
-  percentage: Math.round(
-    (result.score /
-      result.totalQuestions) *
-      100
-  ),
-};
-
-
-
-}
-

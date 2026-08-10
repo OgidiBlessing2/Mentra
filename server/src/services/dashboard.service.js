@@ -148,6 +148,7 @@ const progress =
 // -----------------------------------------
 // Completed quizzes
 // -----------------------------------------
+console.log("📊 Counting quiz attempts for:", userId);
 
 const [{ completedQuizzes }] = await db
   .select({
@@ -155,6 +156,8 @@ const [{ completedQuizzes }] = await db
   })
   .from(quizAttempts)
   .where(eq(quizAttempts.userId, userId));
+
+console.log("✅ Quiz attempts count:", completedQuizzes);
 
 // -----------------------------------------
 // Current lesson
