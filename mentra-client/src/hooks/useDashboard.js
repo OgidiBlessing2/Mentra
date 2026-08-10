@@ -7,12 +7,20 @@ export function useDashboard() {
 
   return useQuery({
     queryKey: ["dashboard"],
+
     queryFn: async () => {
       const token = await getToken();
 
-      console.log("Dashboard token:", token);
+      console.log("📊 DASHBOARD FETCHING");
 
-      return getDashboard(token);
+      const data = await getDashboard(token);
+
+      console.log("📊 DASHBOARD DATA:", data);
+
+      return data;
     },
+
+    staleTime: 0,
+    refetchOnMount: true,
   });
 }
