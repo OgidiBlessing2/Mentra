@@ -1,6 +1,5 @@
-
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import DashboardLayout from "../../layout/DashboardLayout";
 
@@ -9,6 +8,7 @@ import { useSubmitQuiz } from "../../hooks/useSubmitQuiz";
 
 export default function Quiz() {
   const { lessonId } = useParams();
+  const navigate = useNavigate();
 
   const quizMutation = useGenerateQuiz();
   const submitMutation = useSubmitQuiz();
@@ -216,6 +216,12 @@ export default function Quiz() {
             <p className="mt-3 text-lg text-slate-300">
               {result.score} /{" "}
               {result.totalQuestions} correct
+
+              {result.xpEarned !== undefined && (
+  <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-yellow-500/20 bg-yellow-500/10 px-5 py-2 text-sm font-bold text-yellow-400">
+    ⭐ +{result.xpEarned} XP
+  </div>
+)}
             </p>
 
           </div>
@@ -339,15 +345,23 @@ export default function Quiz() {
 
           {/* Back */}
 
-          <button
-            type="button"
-            onClick={() =>
-              window.history.back()
-            }
-            className="mt-8 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 py-4 font-bold text-white transition hover:scale-[1.01]"
-          >
-            Back to Lesson
-          </button>
+         <div className="mt-8 grid gap-3 sm:grid-cols-2">
+  <button
+    type="button"
+    onClick={() => window.history.back()}
+    className="w-full rounded-2xl border border-white/10 bg-[#18181B] py-4 font-bold text-slate-300 transition hover:border-cyan-400/50 hover:text-white"
+  >
+    ← Back to Lesson
+  </button>
+
+  <button
+    type="button"
+    onClick={() => navigate("/dashboard")}
+    className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 py-4 font-bold text-white transition hover:scale-[1.01]"
+  >
+    🏠 Back to Dashboard
+  </button>
+</div>
 
         </div>
       </DashboardLayout>

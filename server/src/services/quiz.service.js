@@ -1,6 +1,6 @@
 
 import { db } from "../db/index.js";
-
+import { users } from "../db/schema/users.js";
 import { quizzes } from "../db/schema/quizzes.js";
 import { quizQuestions } from "../db/schema/quizQuestions.js";
 import { lessons } from "../db/schema/lesson.js";
@@ -271,26 +271,70 @@ export async function submitQuizService(
   // -----------------------------------------
 
   const [attempt] = await db
-    .insert(quizAttempts)
-    .values({
-      quizId,
-      userId,
-      score,
-      totalQuestions,
-      percentage,
-    })
-    .returning();
+  .insert(quizAttempts)
+  .values({
+    quizId,
+    userId,
+    score,
+    totalQuestions,
+    percentage,
+  })
+  .returning();
 
+// -----------------------------------------
+// Award XP
+// -----------------------------------------
+
+let xpEarned = 10; // quiz completion bonus
+
+// 10 XP for every correct answer
+xpEarned += score * 10;
+
+// Perfect score bonus
+if (percentage === 100) {
+  xpEarned += 25;
+}
+
+console.log("⭐ XP earned:", xpEarned);
+
+// Get current user
+const [user] = await db
+  .select()
+  .from(users)
+  .where(eq(users.id, userId))
+  .limit(1);
+
+if (!user) {
+  throw new Error("User not found");
+}
+
+// Add XP
+const newXp = user.xp + xpEarned;
+
+// Calculate level
+const newLevel = Math.floor(newXp / 100) + 1;
+
+await db
+  .update(users)
+  .set({
+    xp: newXp,
+    level: newLevel,
+    updatedAt: new Date(),
+  })
+  .where(eq(users.id, userId));
   // -----------------------------------------
   // Return result
   // -----------------------------------------
 
   return {
-    quizId,
-    score,
-    totalQuestions,
-    percentage,
-    attemptId: attempt.id,
-    results,
-  };
+  quizId,
+  score,
+  totalQuestions,
+  percentage,
+  attemptId: attempt.id,
+  xpEarned,
+  totalXp: newXp,
+  level: newLevel,
+  results,
+};
 }
