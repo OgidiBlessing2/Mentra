@@ -45,8 +45,10 @@ export async function completeLesson(req, res) {
   try {
     const { id } = req.params;
 
-    const lesson = await completeLessonService(id);
-
+    const lesson = await completeLessonService(
+  id,
+  req.user.id
+);s
     res.json({
       success: true,
       lesson,

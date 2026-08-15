@@ -1,7 +1,7 @@
 
 import { eq, and, count, inArray } from "drizzle-orm";
 import { db } from "../db/index.js";
-
+import { users } from "../db/schema/users.js";
 import { roadmaps } from "../db/schema/roadmaps.js";
 import { modules } from "../db/schema/modules.js";
 import { lessons } from "../db/schema/lesson.js";
@@ -17,6 +17,18 @@ export async function getDashboardService(userId) {
     .from(roadmaps)
     .where(eq(roadmaps.userId, userId))
     .limit(1);
+
+    // -----------------------------------------
+// Get user stats
+// -----------------------------------------
+
+const [user] = await db
+  .select({
+    streak: users.streak,
+  })
+  .from(users)
+  .where(eq(users.id, userId))
+  .limit(1);
 
   if (!roadmap) {
     return {
@@ -235,7 +247,7 @@ console.log("✅ Quiz attempts count:", completedQuizzes);
     completedLessons,
     totalLessons,
     completedQuizzes,
-    streak: 0,
+    streak: user?.streak ?? 0,
     progress,
   },
 };

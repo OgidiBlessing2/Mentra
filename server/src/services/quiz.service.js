@@ -6,10 +6,9 @@ import { quizQuestions } from "../db/schema/quizQuestions.js";
 import { lessons } from "../db/schema/lesson.js";
 import { quizAttempts } from "../db/schema/quizAttempts.js";
 import { eq } from "drizzle-orm";
-
 import { generateText } from "./ai.service.js";
 import { getLessonContent } from "./lessonContent.service.js";
-
+import { checkUserAchievements } from "./achievementChecker.service.js";
 import { buildQuizPrompt } from "../prompts/quiz.prompt.js";
 
 export async function generateQuizService(lessonId) {
@@ -309,24 +308,89 @@ if (!user) {
 }
 
 // Add XP
-const newXp = user.xp + xpEarned;
+// -----------------------------------------
+// Calculate XP
+// -----------------------------------------
+
+const currentXp = user.xp ?? 0;
+
+const newXp = currentXp + xpEarned;
 
 // Calculate level
 const newLevel = Math.floor(newXp / 100) + 1;
+
+// -----------------------------------------
+// Calculate streak 🔥
+// -----------------------------------------
+
+const now = new Date();
+
+let newStreak = user.streak ?? 0;
+
+if (!user.lastActiveAt) {
+  // First activity ever
+  newStreak = 1;
+} else {
+  const lastActive = new Date(user.lastActiveAt);
+
+  // Convert both dates to UTC calendar days
+  const today = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate()
+    )
+  );
+
+  const lastActiveDay = new Date(
+    Date.UTC(
+      lastActive.getUTCFullYear(),
+      lastActive.getUTCMonth(),
+      lastActive.getUTCDate()
+    )
+  );
+
+  const difference =
+    (today - lastActiveDay) /
+    (1000 * 60 * 60 * 24);
+
+  if (difference === 0) {
+    // Already active today
+    newStreak = user.streak ?? 1;
+  } else if (difference === 1) {
+    // Active yesterday → continue streak
+    newStreak = (user.streak ?? 0) + 1;
+  } else {
+    // Missed one or more days → reset
+    newStreak = 1;
+  }
+}
+
+// -----------------------------------------
+// Save XP + level + streak
+// -----------------------------------------
 
 await db
   .update(users)
   .set({
     xp: newXp,
     level: newLevel,
-    updatedAt: new Date(),
+    streak: newStreak,
+    lastActiveAt: now,
+    updatedAt: now,
   })
   .where(eq(users.id, userId));
+
+  // -----------------------------------------
+// Check achievements 🏆
+// -----------------------------------------
+
+const unlockedAchievements =
+  await checkUserAchievements(userId);
   // -----------------------------------------
   // Return result
   // -----------------------------------------
-
-  return {
+return {
   quizId,
   score,
   totalQuestions,
@@ -335,6 +399,7 @@ await db
   xpEarned,
   totalXp: newXp,
   level: newLevel,
+  unlockedAchievements,
   results,
 };
 }

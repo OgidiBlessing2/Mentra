@@ -4,7 +4,9 @@ import { getLessonContent } from "./lessonContent.service.js";
 import { lessons } from "../db/schema/lesson.js";
 import { modules } from "../db/schema/modules.js";
 import { roadmaps } from "../db/schema/roadmaps.js";
-
+// import { unlockAchievement } from "./achievement.service.js";
+import { checkUserAchievements } from "./achievementChecker.service.js";
+import { updateUserStreak } from "./streak.service.js";
 /*
 |--------------------------------------------------------------------------
 | Get Lesson
@@ -112,7 +114,7 @@ if (!activeLesson) {
 |--------------------------------------------------------------------------
 */
 
-export async function completeLessonService(id) {
+export async function completeLessonService(id, userId) {
   return await db.transaction(async (tx) => {
 
     // Current lesson
@@ -133,6 +135,16 @@ export async function completeLessonService(id) {
       })
       .where(eq(lessons.id, id));
 
+
+
+      // -----------------------------------------
+// Unlock first lesson achievement 🏆
+// -----------------------------------------ss
+
+const updatedUser = await updateUserStreak(userId);
+
+const unlockedAchievements =
+  await checkUserAchievements(userId);
     // Find next lesson in same module
     const [nextLesson] = await tx
       .select()
@@ -206,6 +218,9 @@ export async function completeLessonService(id) {
       .where(eq(lessons.id, firstLesson.id));
   }
 
+
+
+
   await tx
     .update(roadmaps)
     .set({
@@ -213,15 +228,19 @@ export async function completeLessonService(id) {
     })
     .where(eq(roadmaps.id, currentModule.roadmapId));
 
-  return {
-    message: "Module completed",
-    nextModule,
-    nextLesson: firstLesson,
-  };
+ return {
+  message: "Module completed",
+  nextModule,
+  nextLesson: firstLesson,
+  unlockedAchievements,
+};
 }
 
     return {
-      message: "Roadmap completed 🎉",
-    };
+  message: "Roadmap completed 🎉",
+  unlockedAchievements,
+};
   });
 }
+
+
