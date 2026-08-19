@@ -52,3 +52,27 @@ export async function unlockAchievement(
     unlockedAt: unlocked.unlockedAt,
   };
 }
+
+export async function getUserAchievements(userId) {
+  const allAchievements = await db
+    .select()
+    .from(achievements);
+
+  const unlockedAchievements = await db
+    .select()
+    .from(userAchievements)
+    .where(eq(userAchievements.userId, userId));
+
+  return allAchievements.map((achievement) => {
+    const unlocked = unlockedAchievements.find(
+      (item) =>
+        item.achievementId === achievement.id
+    );
+
+    return {
+      ...achievement,
+      unlocked: Boolean(unlocked),
+      unlockedAt: unlocked?.unlockedAt ?? null,
+    };
+  });
+}

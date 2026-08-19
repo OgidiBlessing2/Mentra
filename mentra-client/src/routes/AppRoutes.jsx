@@ -7,7 +7,7 @@ import {
 import Lesson from "../pages/Lesson/Lesson";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import Quiz from "../pages/Dashboard/Quiz";
-
+import Achievements from "../pages/Achievements/Achievements";
 // Auth Pages
 import SignInPage from "../pages/Auth/SignInPage";
 import SignUpPage from "../pages/Auth/SignUpPage";
@@ -75,6 +75,21 @@ export default function AppRoutes() {
     <>
       <SignedIn>
         <Quiz />
+      </SignedIn>
+
+      <SignedOut>
+        <Navigate to="/sign-in" replace />
+      </SignedOut>
+    </>
+  }
+/>
+
+<Route
+  path="/achievements"
+  element={
+    <>
+      <SignedIn>
+        <Achievements />
       </SignedIn>
 
       <SignedOut>
