@@ -113,11 +113,12 @@ if (!activeLesson) {
 | Complete Lesson
 |--------------------------------------------------------------------------
 */
-
 export async function completeLessonService(id, userId) {
-  return await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
+    // -----------------------------------------
+    // Find current lesson
+    // -----------------------------------------
 
-    // Current lesson
     const [lesson] = await tx
       .select()
       .from(lessons)
@@ -127,7 +128,10 @@ export async function completeLessonService(id, userId) {
       throw new Error("Lesson not found");
     }
 
-    // Mark completed
+    // -----------------------------------------
+    // Mark lesson completed
+    // -----------------------------------------
+
     await tx
       .update(lessons)
       .set({
@@ -135,17 +139,10 @@ export async function completeLessonService(id, userId) {
       })
       .where(eq(lessons.id, id));
 
-
-
-      // -----------------------------------------
-// Unlock first lesson achievement 🏆
-// -----------------------------------------ss
-
-const updatedUser = await updateUserStreak(userId);
-
-const unlockedAchievements =
-  await checkUserAchievements(userId);
+    // -----------------------------------------
     // Find next lesson in same module
+    // -----------------------------------------
+
     const [nextLesson] = await tx
       .select()
       .from(lessons)
@@ -158,9 +155,11 @@ const unlockedAchievements =
       .orderBy(asc(lessons.order))
       .limit(1);
 
-    // Unlock next lesson
-    if (nextLesson) {
+    // -----------------------------------------
+    // Next lesson exists
+    // -----------------------------------------
 
+    if (nextLesson) {
       await tx
         .update(lessons)
         .set({
@@ -174,13 +173,23 @@ const unlockedAchievements =
       };
     }
 
+    // -----------------------------------------
     // Current module
+    // -----------------------------------------
+
     const [currentModule] = await tx
       .select()
       .from(modules)
       .where(eq(modules.id, lesson.moduleId));
 
+    if (!currentModule) {
+      throw new Error("Current module not found");
+    }
+
+    // -----------------------------------------
     // Find next module
+    // -----------------------------------------
+
     const [nextModule] = await tx
       .select()
       .from(modules)
@@ -193,54 +202,74 @@ const unlockedAchievements =
       .orderBy(asc(modules.order))
       .limit(1);
 
-    // Unlock next module
-  if (nextModule) {
-  await tx
-    .update(modules)
-    .set({
-      status: "active",
-    })
-    .where(eq(modules.id, nextModule.id));
+    // -----------------------------------------
+    // Next module exists
+    // -----------------------------------------
 
-  const [firstLesson] = await tx
-    .select()
-    .from(lessons)
-    .where(eq(lessons.moduleId, nextModule.id))
-    .orderBy(asc(lessons.order))
-    .limit(1);
+    if (nextModule) {
+      await tx
+        .update(modules)
+        .set({
+          status: "active",
+        })
+        .where(eq(modules.id, nextModule.id));
 
-  if (firstLesson) {
-    await tx
-      .update(lessons)
-      .set({
-        status: "active",
-      })
-      .where(eq(lessons.id, firstLesson.id));
-  }
+      const [firstLesson] = await tx
+        .select()
+        .from(lessons)
+        .where(eq(lessons.moduleId, nextModule.id))
+        .orderBy(asc(lessons.order))
+        .limit(1);
 
+      if (firstLesson) {
+        await tx
+          .update(lessons)
+          .set({
+            status: "active",
+          })
+          .where(eq(lessons.id, firstLesson.id));
+      }
 
+      await tx
+        .update(roadmaps)
+        .set({
+          currentModule: nextModule.id,
+        })
+        .where(eq(roadmaps.id, currentModule.roadmapId));
 
+      return {
+        message: "Module completed",
+        nextModule,
+        nextLesson: firstLesson,
+      };
+    }
 
-  await tx
-    .update(roadmaps)
-    .set({
-      currentModule: nextModule.id,
-    })
-    .where(eq(roadmaps.id, currentModule.roadmapId));
-
- return {
-  message: "Module completed",
-  nextModule,
-  nextLesson: firstLesson,
-  unlockedAchievements,
-};
-}
+    // -----------------------------------------
+    // Roadmap completed
+    // -----------------------------------------
 
     return {
-  message: "Roadmap completed 🎉",
-  unlockedAchievements,
-};
+      message: "Roadmap completed 🎉",
+      nextLesson: null,
+    };
   });
+
+  // -----------------------------------------
+  // Update streak AFTER transaction
+  // -----------------------------------------
+
+  const updatedUser = await updateUserStreak(userId);
+
+  // -----------------------------------------
+  // Check achievements AFTER transaction
+  // -----------------------------------------
+
+  const unlockedAchievements =
+    await checkUserAchievements(userId);
+
+  return {
+    ...result,
+    streak: updatedUser.streak,
+    unlockedAchievements,
+  };
 }
-
-

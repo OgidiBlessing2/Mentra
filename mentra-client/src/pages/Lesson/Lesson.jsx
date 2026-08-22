@@ -38,15 +38,23 @@ const completeMutation =
   async function handleComplete() {
   completeMutation.mutate(id, {
     onSuccess: (response) => {
-      console.log("Lesson completion:", response);
+      console.log("✅ Lesson completed:", response);
 
-      if (response?.nextLesson?.id) {
-        navigate(`/lessons/${response.nextLesson.id}`);
+      const nextLessonId = response?.nextLesson?.id;
+
+      if (nextLessonId) {
+        console.log("➡️ Loading next lesson:", nextLessonId);
+
+        navigate(`/lessons/${nextLessonId}`);
         return;
       }
 
-      // Entire roadmap completed
+      console.log("🎉 Roadmap completed!");
       navigate("/dashboard");
+    },
+
+    onError: (error) => {
+      console.error("❌ Failed to complete lesson:", error);
     },
   });
 }

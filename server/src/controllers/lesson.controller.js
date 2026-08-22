@@ -48,7 +48,7 @@ export async function completeLesson(req, res) {
     const lesson = await completeLessonService(
   id,
   req.user.id
-);s
+);
     res.json({
       success: true,
       lesson,

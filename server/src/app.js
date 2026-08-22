@@ -17,7 +17,10 @@ import quizRoutes from "./routes/quiz.route.js";
 dotenv.config();
 
 const app = express();
-
+app.use((req, res, next) => {
+  console.log("🌐 REQUEST:", req.method, req.originalUrl);
+  next();
+});
 app.use(cors());
 
 app.use(express.json());

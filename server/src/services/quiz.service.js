@@ -1,4 +1,3 @@
-
 import { db } from "../db/index.js";
 import { users } from "../db/schema/users.js";
 import { quizzes } from "../db/schema/quizzes.js";
@@ -6,9 +5,11 @@ import { quizQuestions } from "../db/schema/quizQuestions.js";
 import { lessons } from "../db/schema/lesson.js";
 import { quizAttempts } from "../db/schema/quizAttempts.js";
 import { eq } from "drizzle-orm";
+
 import { generateText } from "./ai.service.js";
 import { getLessonContent } from "./lessonContent.service.js";
 import { checkUserAchievements } from "./achievementChecker.service.js";
+import { updateUserStreak } from "./streak.service.js";
 import { buildQuizPrompt } from "../prompts/quiz.prompt.js";
 
 export async function generateQuizService(lessonId) {
@@ -47,7 +48,7 @@ export async function generateQuizService(lessonId) {
   }
 
   // --------------------------------------------------
-  // Get the actual lesson content
+  // Get lesson content
   // --------------------------------------------------
 
   const content = await getLessonContent(lesson.id);
@@ -137,19 +138,12 @@ export async function generateQuizService(lessonId) {
       .insert(quizQuestions)
       .values({
         quizId: newQuiz.id,
-
         question: question.question,
-
         optionA: question.options[0],
-
         optionB: question.options[1],
-
         optionC: question.options[2],
-
         optionD: question.options[3],
-
         correctAnswer: question.correctAnswer,
-
         explanation: question.explanation || "",
       });
   }
@@ -168,6 +162,11 @@ export async function generateQuizService(lessonId) {
     questions: savedQuestions,
   };
 }
+
+
+// ======================================================
+// SUBMIT QUIZ
+// ======================================================
 
 export async function submitQuizService(
   quizId,
@@ -270,136 +269,117 @@ export async function submitQuizService(
   // -----------------------------------------
 
   const [attempt] = await db
-  .insert(quizAttempts)
-  .values({
-    quizId,
-    userId,
-    score,
-    totalQuestions,
-    percentage,
-  })
-  .returning();
-
-// -----------------------------------------
-// Award XP
-// -----------------------------------------
-
-let xpEarned = 10; // quiz completion bonus
-
-// 10 XP for every correct answer
-xpEarned += score * 10;
-
-// Perfect score bonus
-if (percentage === 100) {
-  xpEarned += 25;
-}
-
-console.log("⭐ XP earned:", xpEarned);
-
-// Get current user
-const [user] = await db
-  .select()
-  .from(users)
-  .where(eq(users.id, userId))
-  .limit(1);
-
-if (!user) {
-  throw new Error("User not found");
-}
-
-// Add XP
-// -----------------------------------------
-// Calculate XP
-// -----------------------------------------
-
-const currentXp = user.xp ?? 0;
-
-const newXp = currentXp + xpEarned;
-
-// Calculate level
-const newLevel = Math.floor(newXp / 100) + 1;
-
-// -----------------------------------------
-// Calculate streak 🔥
-// -----------------------------------------
-
-const now = new Date();
-
-let newStreak = user.streak ?? 0;
-
-if (!user.lastActiveAt) {
-  // First activity ever
-  newStreak = 1;
-} else {
-  const lastActive = new Date(user.lastActiveAt);
-
-  // Convert both dates to UTC calendar days
-  const today = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate()
-    )
-  );
-
-  const lastActiveDay = new Date(
-    Date.UTC(
-      lastActive.getUTCFullYear(),
-      lastActive.getUTCMonth(),
-      lastActive.getUTCDate()
-    )
-  );
-
-  const difference =
-    (today - lastActiveDay) /
-    (1000 * 60 * 60 * 24);
-
-  if (difference === 0) {
-    // Already active today
-    newStreak = user.streak ?? 1;
-  } else if (difference === 1) {
-    // Active yesterday → continue streak
-    newStreak = (user.streak ?? 0) + 1;
-  } else {
-    // Missed one or more days → reset
-    newStreak = 1;
-  }
-}
-
-// -----------------------------------------
-// Save XP + level + streak
-// -----------------------------------------
-
-await db
-  .update(users)
-  .set({
-    xp: newXp,
-    level: newLevel,
-    streak: newStreak,
-    lastActiveAt: now,
-    updatedAt: now,
-  })
-  .where(eq(users.id, userId));
+    .insert(quizAttempts)
+    .values({
+      quizId,
+      userId,
+      score,
+      totalQuestions,
+      percentage,
+    })
+    .returning();
 
   // -----------------------------------------
-// Check achievements 🏆
-// -----------------------------------------
+  // Award XP ⭐
+  // -----------------------------------------
 
-const unlockedAchievements =
-  await checkUserAchievements(userId);
+  let xpEarned = 10;
+
+  // 10 XP for every correct answer
+  xpEarned += score * 10;
+
+  // Perfect score bonus
+  if (percentage === 100) {
+    xpEarned += 25;
+  }
+
+  console.log("⭐ XP earned:", xpEarned);
+
+  // -----------------------------------------
+  // Get current user
+  // -----------------------------------------
+
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // -----------------------------------------
+  // Calculate new XP
+  // -----------------------------------------
+
+  const currentXp = user.xp ?? 0;
+
+  const newXp = currentXp + xpEarned;
+
+  // Every 100 XP = next level
+  const newLevel =
+    Math.floor(newXp / 100) + 1;
+
+  // -----------------------------------------
+  // Update streak 🔥
+  // -----------------------------------------
+
+  const updatedUser =
+    await updateUserStreak(userId);
+
+  const newStreak =
+    updatedUser.streak;
+
+  // -----------------------------------------
+  // Save XP + level
+  // -----------------------------------------
+
+  await db
+    .update(users)
+    .set({
+      xp: newXp,
+      level: newLevel,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId));
+
+  // -----------------------------------------
+  // Check achievements 🏆
+  // -----------------------------------------
+
+  console.log(
+    "🏆 Checking quiz achievements..."
+  );
+
+  const unlockedAchievements =
+    await checkUserAchievements(userId);
+
+  console.log(
+    "🏆 Achievement check complete:",
+    unlockedAchievements
+  );
+
   // -----------------------------------------
   // Return result
   // -----------------------------------------
-return {
-  quizId,
-  score,
-  totalQuestions,
-  percentage,
-  attemptId: attempt.id,
-  xpEarned,
-  totalXp: newXp,
-  level: newLevel,
-  unlockedAchievements,
-  results,
-};
+
+  return {
+    quizId,
+    score,
+    totalQuestions,
+    percentage,
+
+    attemptId: attempt.id,
+
+    xpEarned,
+    totalXp: newXp,
+    level: newLevel,
+
+    streak: newStreak,
+
+    unlockedAchievements,
+
+    results,
+  };
 }

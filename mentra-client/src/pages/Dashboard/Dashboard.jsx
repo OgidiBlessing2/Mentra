@@ -2,11 +2,11 @@
 import DashboardLayout from "../../layout/DashboardLayout";
 import HeroBanner from "../../components/dashboard/HeroBanner";
 import StatCard from "../../components/dashboard/StatCard";
-
+import AchievementCard from "../../components/dashboard/AchievementCard";
 import { useDashboard } from "../../hooks/useDashboard";
 
 import ContinueLearning from "./ContinueLearning";
-
+import { useAchievements } from "../../hooks/useAchievements";
 import {
   BookOpen,
   Route,
@@ -24,6 +24,13 @@ export default function Dashboard() {
     isLoading,
     error,
   } = useDashboard();
+
+
+  const {
+  achievements,
+  isLoading: achievementsLoading,
+  error: achievementsError,
+} = useAchievements();
 
   // -----------------------------
   // Loading
@@ -157,7 +164,15 @@ export default function Dashboard() {
           roadmap={roadmap}
         />
 
+       
+
+
         <AIMentorCard />
+
+        <AchievementCard
+    achievements={achievements}
+    isLoading={achievementsLoading}
+  />
 
       </div>
 

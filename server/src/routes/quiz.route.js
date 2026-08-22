@@ -20,4 +20,14 @@ router.post(
   submitQuiz
 );
 
+router.post(
+  "/submit/:quizId",
+  (req, res, next) => {
+    console.log("🚨 QUIZ SUBMIT ROUTE HIT");
+    next();
+  },
+  protect,
+  submitQuiz
+);
+
 export default router;
