@@ -1,4 +1,5 @@
 import { Router } from "express";
+
 import {
   createNote,
   getNotes,
@@ -7,16 +8,18 @@ import {
   deleteNote,
 } from "../controllers/note.controller.js";
 
+import { protect } from "../middlewares/auth.middleware.js";
+
 const router = Router();
 
-router.post("/", createNote);
+router.post("/", protect, createNote);
 
-router.get("/", getNotes);
+router.get("/", protect, getNotes);
 
-router.get("/:id", getNote);
+router.get("/:id", protect, getNote);
 
-router.patch("/:id", updateNote);
+router.patch("/:id", protect, updateNote);
 
-router.delete("/:id", deleteNote);
+router.delete("/:id", protect, deleteNote);
 
-export default router
+export default router;

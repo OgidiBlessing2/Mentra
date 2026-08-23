@@ -11,6 +11,9 @@ import Achievements from "../pages/Achievements/Achievements";
 // Auth Pages
 import SignInPage from "../pages/Auth/SignInPage";
 import SignUpPage from "../pages/Auth/SignUpPage";
+import Notes from "../pages/Notes/Notes";
+
+
 
 export default function AppRoutes() {
   return (
@@ -53,6 +56,22 @@ export default function AppRoutes() {
         </SignedIn>
     }
 />
+
+<Route
+  path="/notes"
+  element={
+    <>
+      <SignedIn>
+        <Notes />
+      </SignedIn>
+
+      <SignedOut>
+        <Navigate to="/sign-in" replace />
+      </SignedOut>
+    </>
+  }
+/>
+
 
 <Route
   path="/lessons/:id"

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { notes } from "../db/schema/note.js";
 
@@ -8,7 +8,7 @@ export async function createNoteService(userId, data) {
     .insert(notes)
     .values({
       userId,
-      lessonId: data.lessonId,
+      lessonId: data.lessonId || null,
       title: data.title,
       content: data.content,
     })
@@ -26,11 +26,16 @@ export async function getNotesService(userId) {
 }
 
 // Get One Note
-export async function getNoteService(id) {
+export async function getNoteService(id, userId) {
   const [note] = await db
     .select()
     .from(notes)
-    .where(eq(notes.id, id));
+    .where(
+      and(
+        eq(notes.id, id),
+        eq(notes.userId, userId)
+      )
+    );
 
   if (!note) {
     throw new Error("Note not found");
@@ -40,7 +45,11 @@ export async function getNoteService(id) {
 }
 
 // Update Note
-export async function updateNoteService(id, data) {
+export async function updateNoteService(
+  id,
+  userId,
+  data
+) {
   const [note] = await db
     .update(notes)
     .set({
@@ -48,17 +57,35 @@ export async function updateNoteService(id, data) {
       content: data.content,
       updatedAt: new Date(),
     })
-    .where(eq(notes.id, id))
+    .where(
+      and(
+        eq(notes.id, id),
+        eq(notes.userId, userId)
+      )
+    )
     .returning();
+
+  if (!note) {
+    throw new Error("Note not found");
+  }
 
   return note;
 }
 
-// Delete Note
-export async function deleteNoteService(id) {
-  await db
+export async function deleteNoteService(id, userId) {
+  const [deletedNote] = await db
     .delete(notes)
-    .where(eq(notes.id, id));
+    .where(
+      and(
+        eq(notes.id, id),
+        eq(notes.userId, userId)
+      )
+    )
+    .returning();
+
+  if (!deletedNote) {
+    throw new Error("Note not found or you don't own this note");
+  }
 
   return {
     message: "Note deleted successfully",
