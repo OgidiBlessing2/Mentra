@@ -4,7 +4,7 @@ import {
   SignedIn,
   SignedOut,
 } from "@clerk/clerk-react";
-import Lesson from "../pages/Lesson/Lesson";
+import Lesson from "../pages/Lesson/Lesson.jsx";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import Quiz from "../pages/Dashboard/Quiz";
 import Achievements from "../pages/Achievements/Achievements";

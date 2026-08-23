@@ -5,6 +5,7 @@ import {
   MessageSquare,
   FolderKanban,
   Brain,
+  StickyNote,
   Settings,
   Sparkles,
   ChevronRight,
@@ -14,7 +15,16 @@ import {
 } from "@clerk/clerk-react";
 
 import { NavLink } from "react-router-dom";
+import { useDashboard } from "../../hooks/useDashboard.js";
 
+
+
+export default function Sidebar() {
+   
+  const { data } = useDashboard();
+
+  const currentLessonId =
+    data?.dashboard?.currentLesson?.id;
 const menu = [
   {
     name: "Dashboard",
@@ -26,11 +36,18 @@ const menu = [
     icon: Route,
     path: "/roadmaps",
   },
+ {
+  name: "Lessons",
+  icon: BookOpen,
+  path: currentLessonId
+    ? `/lessons/${currentLessonId}`
+    : "/dashboard",
+},
   {
-    name: "Lessons",
-    icon: BookOpen,
-    path: "/lessons",
-  },
+  name: "Notes",
+  icon: StickyNote,
+  path: "/notes",
+},
   {
     name: "AI Mentor",
     icon: MessageSquare,
@@ -53,7 +70,6 @@ const menu = [
   },
 ];
 
-export default function Sidebar() {
   const { user } = useUser();
   return (
     <aside className="w-72 min-h-screen bg-[#111827] border-r border-white/10 flex flex-col">

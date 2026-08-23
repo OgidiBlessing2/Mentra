@@ -1,25 +1,33 @@
 import { useState } from "react";
-import { Plus, Trash2, Pencil, X, Save } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Pencil,
+  X,
+  Save,
+} from "lucide-react";
 
 import DashboardLayout from "../../layout/DashboardLayout";
 import { useNotes } from "../../hooks/useNotes";
 
 export default function Notes() {
   const {
-  notes,
-  isLoading,
-  error,
-  addNote,
-  editNote,
-  removeNote,
-  isCreating,
-  isUpdating,
-  deletingId,
-} = useNotes();
+    notes,
+    isLoading,
+    error,
+    addNote,
+    editNote,
+    removeNote,
+    isCreating,
+    isUpdating,
+    deletingId,
+  } = useNotes();
 
   const [showForm, setShowForm] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
 
+  // Delete confirmation
+  const [noteToDelete, setNoteToDelete] = useState(null);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -71,15 +79,22 @@ export default function Notes() {
     }
   }
 
-  async function handleDelete(id) {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this note?"
-    );
+  function openDeleteConfirmation(note) {
+    setNoteToDelete(note);
+  }
 
-    if (!confirmed) return;
+  function closeDeleteConfirmation() {
+    if (deletingId) return;
+
+    setNoteToDelete(null);
+  }
+
+  async function confirmDelete() {
+    if (!noteToDelete) return;
 
     try {
-      await removeNote(id);
+      await removeNote(noteToDelete.id);
+      setNoteToDelete(null);
     } catch (err) {
       console.error("Failed to delete note:", err);
     }
@@ -148,7 +163,7 @@ export default function Notes() {
 
             <button
               onClick={openCreate}
-              className="mt-6 rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white"
+              className="mt-6 rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white transition hover:bg-emerald-600"
             >
               Create Note
             </button>
@@ -175,24 +190,32 @@ export default function Notes() {
 
                   <div className="flex gap-2">
 
+                    {/* Edit */}
+
                     <button
                       onClick={() => openEdit(note)}
-                      className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+                      disabled={deletingId === note.id}
+                      className="rounded-lg p-2 text-slate-400 transition hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Pencil size={18} />
                     </button>
 
+                    {/* Delete */}
+
                     <button
-  onClick={() => handleDelete(note.id)}
-  disabled={deletingId === note.id}
-  className="rounded-lg p-2 text-slate-400 hover:bg-red-500/10 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
->
-  {deletingId === note.id ? (
-    <span className="block h-[18px] w-[18px] animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
-  ) : (
-    <Trash2 size={18} />
-  )}
-</button>
+                      onClick={() =>
+                        openDeleteConfirmation(note)
+                      }
+                      disabled={deletingId === note.id}
+                      className="rounded-lg p-2 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {deletingId === note.id ? (
+                        <span className="block h-[18px] w-[18px] animate-spin rounded-full border-2 border-red-400 border-t-transparent" />
+                      ) : (
+                        <Trash2 size={18} />
+                      )}
+                    </button>
+
                   </div>
 
                 </div>
@@ -203,7 +226,9 @@ export default function Notes() {
 
                 <p className="mt-6 text-xs text-slate-600">
                   {note.createdAt
-                    ? new Date(note.createdAt).toLocaleDateString()
+                    ? new Date(
+                        note.createdAt
+                      ).toLocaleDateString()
                     : ""}
                 </p>
 
@@ -213,7 +238,7 @@ export default function Notes() {
           </div>
         )}
 
-        {/* Create/Edit Modal */}
+        {/* Create / Edit Modal */}
 
         {showForm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
@@ -230,7 +255,8 @@ export default function Notes() {
 
                 <button
                   onClick={closeForm}
-                  className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+                  disabled={isCreating || isUpdating}
+                  className="rounded-lg p-2 text-slate-400 transition hover:bg-white/5 hover:text-white disabled:opacity-50"
                 >
                   <X />
                 </button>
@@ -248,7 +274,8 @@ export default function Notes() {
                     setTitle(e.target.value)
                   }
                   placeholder="Note title"
-                  className="w-full rounded-xl border border-white/10 bg-[#232326] px-4 py-3 text-white outline-none focus:border-emerald-500"
+                  disabled={isCreating || isUpdating}
+                  className="w-full rounded-xl border border-white/10 bg-[#232326] px-4 py-3 text-white outline-none focus:border-emerald-500 disabled:opacity-60"
                 />
 
                 <textarea
@@ -258,30 +285,114 @@ export default function Notes() {
                   }
                   placeholder="Write your note..."
                   rows={10}
-                  className="w-full resize-none rounded-xl border border-white/10 bg-[#232326] px-4 py-3 text-white outline-none focus:border-emerald-500"
+                  disabled={isCreating || isUpdating}
+                  className="w-full resize-none rounded-xl border border-white/10 bg-[#232326] px-4 py-3 text-white outline-none focus:border-emerald-500 disabled:opacity-60"
                 />
 
-                <button 
-  type="submit" 
-  disabled={isCreating || isUpdating}
-  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 font-bold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60" 
-> 
-  {isCreating || isUpdating ? (
-    <>
-      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-      {editingNote ? "Saving..." : "Creating..."}
-    </>
-  ) : (
-    <>
-      <Save size={18} />
+                <button
+                  type="submit"
+                  disabled={isCreating || isUpdating}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 font-bold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+                >
 
-      {editingNote 
-        ? "Save Changes" 
-        : "Create Note"}
-    </>
-  )}
-</button>
+                  {isCreating || isUpdating ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+
+                      {editingNote
+                        ? "Saving..."
+                        : "Creating..."}
+                    </>
+                  ) : (
+                    <>
+                      <Save size={18} />
+
+                      {editingNote
+                        ? "Save Changes"
+                        : "Create Note"}
+                    </>
+                  )}
+
+                </button>
+
               </form>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+
+        {noteToDelete && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+
+            <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#18181B] p-7 shadow-2xl">
+
+              {/* Icon */}
+
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10">
+                <Trash2
+                  size={26}
+                  className="text-red-400"
+                />
+              </div>
+
+              {/* Text */}
+
+              <div className="mt-5 text-center">
+
+                <h2 className="text-2xl font-bold text-white">
+                  Delete Note?
+                </h2>
+
+                <p className="mt-3 text-slate-400">
+                  Are you sure you want to delete{" "}
+                  <span className="font-semibold text-white">
+                    "{noteToDelete.title}"
+                  </span>
+                  ?
+                </p>
+
+                <p className="mt-2 text-sm text-slate-500">
+                  This action cannot be undone.
+                </p>
+
+              </div>
+
+              {/* Buttons */}
+
+              <div className="mt-7 grid grid-cols-2 gap-3">
+
+                <button
+                  onClick={closeDeleteConfirmation}
+                  disabled={deletingId === noteToDelete.id}
+                  className="rounded-xl border border-white/10 py-3 font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={confirmDelete}
+                  disabled={deletingId === noteToDelete.id}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-red-500 py-3 font-semibold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+
+                  {deletingId === noteToDelete.id ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={18} />
+                      Delete
+                    </>
+                  )}
+
+                </button>
+
+              </div>
 
             </div>
 
