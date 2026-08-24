@@ -10,6 +10,7 @@ import dashboardRoutes from "./routes/dashboard.routes.js";
 import achievementRoutes from "./routes/achievement.routes.js";
 import mentorRoutes from "./routes/mentor.routes.js";
 import noteRoutes from "./routes/note.routes.js";
+import bookmarkRoutes from "./routes/bookmark.routes.js";
 import projectRoutes from "./routes/project.routes.js";
 import flashcardRoutes from "./routes/flashcard.routes.js";
 import { clerkMiddleware } from "@clerk/express";
@@ -37,6 +38,7 @@ app.use("/api/roadmaps", roadmapRoutes);
 app.use("/api/mentor", mentorRoutes);
 app.use("/api/quizzes", quizRoutes);
 app.use("/api/notes", noteRoutes);
+app.use("/api/bookmarks", bookmarkRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/flashcards", flashcardRoutes);
 

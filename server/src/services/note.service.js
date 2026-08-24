@@ -43,13 +43,7 @@ export async function getNoteService(id, userId) {
 
   return note;
 }
-
-// Update Note
-export async function updateNoteService(
-  id,
-  userId,
-  data
-) {
+export async function updateNoteService(userId, id, data) {
   const [note] = await db
     .update(notes)
     .set({

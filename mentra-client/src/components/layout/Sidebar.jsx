@@ -2,13 +2,14 @@ import {
   LayoutDashboard,
   Route,
   BookOpen,
+  Bookmark,
   MessageSquare,
   FolderKanban,
   Brain,
-  StickyNote,
   Settings,
   Sparkles,
   ChevronRight,
+  StickyNote
 } from "lucide-react";
 import {
   useUser,
@@ -42,6 +43,11 @@ const menu = [
   path: currentLessonId
     ? `/lessons/${currentLessonId}`
     : "/dashboard",
+},
+{
+  name: "Bookmarks",
+  icon: Bookmark,
+  path: "/bookmarks",
 },
   {
   name: "Notes",

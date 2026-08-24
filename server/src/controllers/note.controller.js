@@ -72,11 +72,9 @@ export async function getNote(req, res) {
 
 export async function updateNote(req, res) {
   try {
-    const userId = req.auth.userId;
-
     const note = await updateNoteService(
+      req.user.id,
       req.params.id,
-      userId,
       req.body
     );
 
@@ -85,9 +83,9 @@ export async function updateNote(req, res) {
       note,
     });
   } catch (err) {
-    console.error("UPDATE NOTE ERROR:", err);
+    console.error("❌ UPDATE NOTE ERROR:", err);
 
-    res.status(500).json({
+    res.status(404).json({
       success: false,
       message: err.message,
     });

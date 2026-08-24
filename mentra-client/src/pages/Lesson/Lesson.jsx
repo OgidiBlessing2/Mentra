@@ -7,7 +7,8 @@ import { useState } from "react";
 import { useMentor } from "../../hooks/useMentor";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-
+import { useBookmarks } from "../../hooks/useBookmarks";
+import { Bookmark } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -22,6 +23,13 @@ console.log("Lesson URL id:", id);
   } = useLesson(id);
 
   const navigate = useNavigate();
+  const {
+  bookmarks,
+  addBookmark,
+  removeBookmark,
+  isAdding,
+  deletingId,
+} = useBookmarks();
   const [showMentor, setShowMentor] = useState(false);
   const [question, setQuestion] = useState("");
 
@@ -32,7 +40,13 @@ const completeMutation =
   useCompleteLesson();
 
   const lesson = data?.lesson;
+
   const content = lesson?.content;
+
+  const isBookmarked = bookmarks.some(
+  (bookmark) =>
+    bookmark.lessonId === lesson?.id
+);
   console.log(data)
 
   async function handleComplete() {
@@ -236,6 +250,40 @@ async function askMentor() {
   className="w-full rounded-2xl bg-gradient-to-r from-violet-600 to-cyan-600 py-4 font-bold text-white transition hover:scale-105"
 >
   🤖 Ask AI Mentor
+</button>
+
+<button
+  onClick={() =>
+    isBookmarked
+      ? removeBookmark(lesson.id)
+      : addBookmark(lesson.id)
+  }
+  disabled={isAdding || deletingId === lesson.id}
+  className={`w-full rounded-2xl py-4 font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+    isBookmarked
+      ? "border border-amber-400/30 bg-amber-400/10 text-amber-400 hover:bg-amber-400/20"
+      : "border border-white/10 text-white hover:bg-white/5"
+  }`}
+>
+  {isAdding || deletingId === lesson.id ? (
+    <span className="flex items-center justify-center gap-2">
+      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+      {isBookmarked
+        ? "Removing..."
+        : "Saving..."}
+    </span>
+  ) : (
+    <span className="flex items-center justify-center gap-2">
+      <Bookmark
+        size={18}
+        fill={isBookmarked ? "currentColor" : "none"}
+      />
+
+      {isBookmarked
+        ? "Bookmarked"
+        : "Bookmark Lesson"}
+    </span>
+  )}
 </button>
 
   <button

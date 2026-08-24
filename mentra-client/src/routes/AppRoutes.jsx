@@ -12,7 +12,7 @@ import Achievements from "../pages/Achievements/Achievements";
 import SignInPage from "../pages/Auth/SignInPage";
 import SignUpPage from "../pages/Auth/SignUpPage";
 import Notes from "../pages/Notes/Notes";
-
+import Bookmarks from "../pages/Bookmarks/Bookmarks";
 
 
 export default function AppRoutes() {
@@ -63,6 +63,21 @@ export default function AppRoutes() {
     <>
       <SignedIn>
         <Notes />
+      </SignedIn>
+
+      <SignedOut>
+        <Navigate to="/sign-in" replace />
+      </SignedOut>
+    </>
+  }
+/>
+
+<Route
+  path="/bookmarks"
+  element={
+    <>
+      <SignedIn>
+        <Bookmarks />
       </SignedIn>
 
       <SignedOut>
