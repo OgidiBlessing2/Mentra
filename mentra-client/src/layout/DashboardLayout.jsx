@@ -1,28 +1,28 @@
+import { useState } from "react";
 import Sidebar from "../components/layout/Sidebar";
 import Navbar from "../components/layout/Navbar";
 
 export default function DashboardLayout({ children }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <div className="min-h-screen bg-[#09090B] text-white flex">
+    <div className="flex min-h-screen w-full overflow-x-hidden bg-[#09090B] text-white">
 
-      {/* Sidebar */}
-      <Sidebar />
+      <Sidebar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+      />
 
-      {/* Main Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
 
-        {/* Top Navigation */}
-        <Navbar />
+        <Navbar
+          setSidebarOpen={setSidebarOpen}
+        />
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-8">
-
-          <div className="max-w-7xl mx-auto">
-
+        <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8">
+          <div className="mx-auto w-full max-w-7xl min-w-0">
             {children}
-
           </div>
-
         </main>
 
       </div>

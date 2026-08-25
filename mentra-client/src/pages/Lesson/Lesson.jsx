@@ -2,7 +2,9 @@ import { useParams } from "react-router-dom";
 import DashboardLayout from "../../layout/DashboardLayout";
 import { useLesson } from "../../hooks/useLesson";
 import { useCompleteLesson } from "../../hooks/useCompleteLesson";
+import { useNotes } from "../../hooks/useNotes";
 import { useNavigate } from "react-router-dom";
+import { useFlashcards } from "../../hooks/useFlashcards";
 import { useState } from "react";
 import { useMentor } from "../../hooks/useMentor";
 import ReactMarkdown from "react-markdown";
@@ -33,8 +35,32 @@ console.log("Lesson URL id:", id);
   const [showMentor, setShowMentor] = useState(false);
   const [question, setQuestion] = useState("");
 
+  const {
+  addNote,
+  isCreating,
+} = useNotes();
+
+const [showNoteForm, setShowNoteForm] = useState(false);
+const [noteTitle, setNoteTitle] = useState("");
+const [noteContent, setNoteContent] = useState("");
+
+
+const [showFlashcardForm, setShowFlashcardForm] =
+  useState(false);
+
+const [flashcardQuestion, setFlashcardQuestion] =
+  useState("");
+
+const [flashcardAnswer, setFlashcardAnswer] =
+  useState("");
+
   const [messages, setMessages] = useState([]);
   const mentorMutation = useMentor();
+
+  const {
+  addFlashcard,
+  isCreating: isCreatingFlashcard,
+} = useFlashcards();
 
 const completeMutation =
   useCompleteLesson();
@@ -48,6 +74,58 @@ const completeMutation =
     bookmark.lessonId === lesson?.id
 );
   console.log(data)
+
+
+  async function handleSaveNote(e) {
+  e.preventDefault();
+
+  if (!noteTitle.trim() || !noteContent.trim()) {
+    return;
+  }
+
+  try {
+    await addNote({
+      lessonId: lesson.id,
+      title: noteTitle,
+      content: noteContent,
+    });
+
+    setNoteTitle("");
+    setNoteContent("");
+    setShowNoteForm(false);
+  } catch (error) {
+    console.error("❌ Failed to save lesson note:", error);
+  }
+}
+
+async function handleSaveFlashcard(e) {
+  e.preventDefault();
+
+  if (
+    !flashcardQuestion.trim() ||
+    !flashcardAnswer.trim()
+  ) {
+    return;
+  }
+
+  try {
+    await addFlashcard({
+      lessonId: lesson.id,
+      question: flashcardQuestion.trim(),
+      answer: flashcardAnswer.trim(),
+    });
+
+    setFlashcardQuestion("");
+    setFlashcardAnswer("");
+    setShowFlashcardForm(false);
+
+  } catch (error) {
+    console.error(
+      "❌ Failed to create flashcard:",
+      error
+    );
+  }
+}
 
   async function handleComplete() {
   completeMutation.mutate(id, {
@@ -286,6 +364,20 @@ async function askMentor() {
   )}
 </button>
 
+<button
+  onClick={() => setShowNoteForm(true)}
+  className="w-full rounded-2xl border border-white/10 py-4 font-bold text-white transition hover:bg-white/5"
+>
+  📝 Add Note
+</button>
+
+<button
+  onClick={() => setShowFlashcardForm(true)}
+  className="w-full rounded-2xl border border-violet-400/20 bg-violet-400/5 py-4 font-bold text-violet-400 transition hover:bg-violet-400/10"
+>
+  🧠 Create Flashcard
+</button>
+
   <button
   onClick={handleComplete}
 
@@ -323,6 +415,83 @@ async function askMentor() {
         </div>
 
       </div>
+
+            {showNoteForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+
+          <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-[#18181B] p-6">
+
+            {/* Header */}
+
+            <div className="flex items-center justify-between">
+
+              <div>
+                <h2 className="text-2xl font-bold text-white">
+                  Add Note
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-400">
+                  Save something important from this lesson.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowNoteForm(false)}
+                className="rounded-lg p-2 text-xl text-slate-400 hover:bg-white/5 hover:text-white"
+              >
+                ×
+              </button>
+
+            </div>
+
+            {/* Form */}
+
+            <form
+              onSubmit={handleSaveNote}
+              className="mt-6 space-y-5"
+            >
+
+              <input
+                type="text"
+                value={noteTitle}
+                onChange={(e) => setNoteTitle(e.target.value)}
+                placeholder="Note title"
+                className="w-full rounded-xl border border-white/10 bg-[#232326] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-emerald-500"
+              />
+
+              <textarea
+                value={noteContent}
+                onChange={(e) => setNoteContent(e.target.value)}
+                placeholder="Write your note..."
+                rows={8}
+                className="w-full resize-none rounded-xl border border-white/10 bg-[#232326] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-emerald-500"
+              />
+
+              <button
+                type="submit"
+                disabled={isCreating}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 font-bold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+
+                {isCreating ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Note"
+                )}
+
+              </button>
+
+            </form>
+
+          </div>
+
+        </div>
+      )}
+
 
       {showMentor && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">

@@ -1,4 +1,3 @@
-
 import DashboardLayout from "../../layout/DashboardLayout";
 import HeroBanner from "../../components/dashboard/HeroBanner";
 import StatCard from "../../components/dashboard/StatCard";
@@ -7,6 +6,7 @@ import { useDashboard } from "../../hooks/useDashboard";
 
 import ContinueLearning from "./ContinueLearning";
 import { useAchievements } from "../../hooks/useAchievements";
+
 import {
   BookOpen,
   Route,
@@ -25,21 +25,15 @@ export default function Dashboard() {
     error,
   } = useDashboard();
 
-
   const {
-  achievements,
-  isLoading: achievementsLoading,
-  error: achievementsError,
-} = useAchievements();
-
-  // -----------------------------
-  // Loading
-  // -----------------------------
+    achievements,
+    isLoading: achievementsLoading,
+  } = useAchievements();
 
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex min-h-[60vh] w-full items-center justify-center">
           <p className="text-lg text-slate-400">
             Loading dashboard...
           </p>
@@ -48,14 +42,10 @@ export default function Dashboard() {
     );
   }
 
-  // -----------------------------
-  // Error
-  // -----------------------------
-
   if (error) {
     return (
       <DashboardLayout>
-        <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex min-h-[60vh] w-full items-center justify-center px-4 text-center">
           <p className="text-lg text-red-400">
             Something went wrong while loading your dashboard.
           </p>
@@ -64,16 +54,12 @@ export default function Dashboard() {
     );
   }
 
-  // -----------------------------
-  // Dashboard data
-  // -----------------------------
-
   const dashboard = data?.dashboard;
 
   if (!dashboard) {
     return (
       <DashboardLayout>
-        <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex min-h-[60vh] w-full items-center justify-center px-4 text-center">
           <p className="text-lg text-slate-400">
             No dashboard data found.
           </p>
@@ -85,29 +71,21 @@ export default function Dashboard() {
   const roadmap = dashboard.currentRoadmap;
   const currentLesson = dashboard.currentLesson;
 
-  // -----------------------------
-  // No roadmap
-  // -----------------------------
-
   if (!roadmap) {
     return (
       <DashboardLayout>
-        <div className="mx-auto max-w-4xl py-20 text-center">
-          <h1 className="text-3xl font-bold text-white">
+        <div className="mx-auto w-full max-w-4xl px-4 py-20 text-center">
+          <h1 className="text-2xl font-bold text-white sm:text-3xl">
             Welcome to Mentra 👋
           </h1>
 
-          <p className="mt-4 text-slate-400">
+          <p className="mt-4 text-sm text-slate-400 sm:text-base">
             Create your learning roadmap to start learning.
           </p>
         </div>
       </DashboardLayout>
     );
   }
-
-  // -----------------------------
-  // Stats
-  // -----------------------------
 
   const stats = [
     {
@@ -136,52 +114,75 @@ export default function Dashboard() {
     },
   ];
 
-  // -----------------------------
-  // UI
-  // -----------------------------
-
   return (
     <DashboardLayout>
 
-      {/* Hero */}
-      <HeroBanner />
+      <div className="mx-auto w-full min-w-0 max-w-7xl">
 
-      {/* Stats */}
-      <div className="mt-8 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <StatCard
-            key={stat.title}
-            {...stat}
-          />
-        ))}
-      </div>
+        {/* Hero */}
+        <section className="w-full min-w-0">
+          <HeroBanner />
+        </section>
 
-      {/* Continue Learning + AI Mentor */}
-      <div className="mt-8 grid gap-6 xl:grid-cols-2">
+        {/* Stats */}
+        <section className="mt-6 w-full min-w-0 sm:mt-8">
+          <div className="grid w-full min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {stats.map((stat) => (
+              <div
+                key={stat.title}
+                className="min-w-0"
+              >
+                <StatCard
+                  {...stat}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
 
-        <ContinueLearning
-          lesson={currentLesson}
-          roadmap={roadmap}
-        />
+        {/* Continue Learning + AI Mentor + Achievements */}
+        <section className="mt-6 w-full min-w-0 sm:mt-8">
 
-       
+          <div className="grid w-full min-w-0 grid-cols-1 gap-6 xl:grid-cols-2">
 
+            <div className="min-w-0">
+              <ContinueLearning
+                lesson={currentLesson}
+                roadmap={roadmap}
+              />
+            </div>
 
-        <AIMentorCard />
+            <div className="min-w-0">
+              <AIMentorCard />
+            </div>
 
-        <AchievementCard
-    achievements={achievements}
-    isLoading={achievementsLoading}
-  />
+            <div className="min-w-0 xl:col-span-2">
+              <AchievementCard
+                achievements={achievements}
+                isLoading={achievementsLoading}
+              />
+            </div>
 
-      </div>
+          </div>
 
-      {/* Today's Goal + Recent Activity */}
-      <div className="mt-8 grid gap-6 xl:grid-cols-2">
+        </section>
 
-        <TodaysGoal />
+        {/* Today's Goal + Recent Activity */}
+        <section className="mt-6 w-full min-w-0 sm:mt-8">
 
-        <RecentActivity />
+          <div className="grid w-full min-w-0 grid-cols-1 gap-6 xl:grid-cols-2">
+
+            <div className="min-w-0">
+              <TodaysGoal />
+            </div>
+
+            <div className="min-w-0">
+              <RecentActivity />
+            </div>
+
+          </div>
+
+        </section>
 
       </div>
 

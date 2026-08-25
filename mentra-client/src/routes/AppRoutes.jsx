@@ -13,7 +13,7 @@ import SignInPage from "../pages/Auth/SignInPage";
 import SignUpPage from "../pages/Auth/SignUpPage";
 import Notes from "../pages/Notes/Notes";
 import Bookmarks from "../pages/Bookmarks/Bookmarks";
-
+import Flashcards from "../pages/FlashCards/Flashcard";
 
 export default function AppRoutes() {
   return (
@@ -30,6 +30,8 @@ export default function AppRoutes() {
         path="/sign-up/*"
         element={<SignUpPage />}
       />
+
+
 
       {/* ---------- PROTECTED ---------- */}
 
@@ -85,6 +87,11 @@ export default function AppRoutes() {
       </SignedOut>
     </>
   }
+/>
+
+<Route
+  path="/flashcards"
+  element={<Flashcards />}
 />
 
 
