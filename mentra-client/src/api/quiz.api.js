@@ -27,10 +27,7 @@ export async function generateQuiz(lessonId, token) {
 // Submit Quiz
 // -----------------------------------------
 export async function submitQuiz(quizId, answers, token) {
-  console.log("🚀 SUBMIT API CALLED");
-  console.log("Quiz ID:", quizId);
-  console.log("Answers:", answers);
-  console.log("Token exists:", !!token);
+ 
 
   const response = await axios.post(
     `${API_URL}/submit/${quizId}`,
@@ -43,10 +40,6 @@ export async function submitQuiz(quizId, answers, token) {
     }
   );
 
-  console.log(
-    "✅ SUBMIT RESPONSE:",
-    JSON.stringify(response.data, null, 2)
-  );
-
+  
   return response.data;
 }

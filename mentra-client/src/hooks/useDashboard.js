@@ -11,11 +11,8 @@ export function useDashboard() {
     queryFn: async () => {
       const token = await getToken();
 
-      console.log("📊 DASHBOARD FETCHING");
-
       const data = await getDashboard(token);
 
-      console.log("📊 DASHBOARD DATA:", data);
 
       return data;
     },

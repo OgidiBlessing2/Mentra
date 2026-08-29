@@ -9,8 +9,6 @@ export function useCompleteLesson() {
     mutationFn: async (lessonId) => {
       const token = await getToken();
 
-      console.log("🔐 Complete lesson token:", !!token);
-
       const response = await completeLesson(
         lessonId,
         token

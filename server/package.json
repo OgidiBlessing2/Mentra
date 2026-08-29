@@ -24,6 +24,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.1",
     "multer": "^2.2.0",
+    "node-cron": "^4.6.0",
     "pg": "^8.22.0",
     "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^16.1.1",

@@ -14,7 +14,8 @@ import SignUpPage from "../pages/Auth/SignUpPage";
 import Notes from "../pages/Notes/Notes";
 import Bookmarks from "../pages/Bookmarks/Bookmarks";
 import Flashcards from "../pages/FlashCards/Flashcard";
-
+import Roadmap from "../pages/Roadmap/Roadmap";
+import Projects from "../pages/Project/Project";
 export default function AppRoutes() {
   return (
     <Routes>
@@ -49,6 +50,7 @@ export default function AppRoutes() {
           </>
         }
       />
+
 
       <Route
     path="/onboarding"
@@ -94,6 +96,20 @@ export default function AppRoutes() {
   element={<Flashcards />}
 />
 
+<Route
+  path="/roadmaps/:id"
+  element={
+    <>
+      <SignedIn>
+        <Roadmap />
+      </SignedIn>
+
+      <SignedOut>
+        <Navigate to="/sign-in" replace />
+      </SignedOut>
+    </>
+  }
+/>
 
 <Route
   path="/lessons/:id"
@@ -139,6 +155,22 @@ export default function AppRoutes() {
     </>
   }
 />
+
+      <Route
+  path="/projects"
+  element={
+    <>
+      <SignedIn>
+        <Projects />
+      </SignedIn>
+
+      <SignedOut>
+        <Navigate to="/sign-in" replace />
+      </SignedOut>
+    </>
+  }
+/>
+
 
       {/* Temporary */}
       <Route

@@ -17,7 +17,6 @@ import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 export default function Lesson() {
   const { id } = useParams();
-console.log("Lesson URL id:", id);
   const {
     data,
     isLoading,
@@ -73,7 +72,6 @@ const completeMutation =
   (bookmark) =>
     bookmark.lessonId === lesson?.id
 );
-  console.log(data)
 
 
   async function handleSaveNote(e) {
@@ -141,7 +139,6 @@ async function handleSaveFlashcard(e) {
         return;
       }
 
-      console.log("🎉 Roadmap completed!");
       navigate("/dashboard");
     },
 

@@ -22,6 +22,13 @@ export default function Sidebar({
   setSidebarOpen,
 }) {
   const { data } = useDashboard();
+
+
+  const currentRoadmapId =
+  data?.dashboard?.currentRoadmap?.id;
+
+console.log("CURRENT ROADMAP ID:", currentRoadmapId);
+
   const { user } = useUser();
 
   const currentLessonId =
@@ -33,11 +40,14 @@ export default function Sidebar({
       icon: LayoutDashboard,
       path: "/dashboard",
     },
-    {
-      name: "Learning Path",
-      icon: Route,
-      path: "/roadmaps",
-    },
+{
+  name: "Learning Path",
+  icon: Route,
+  path: currentRoadmapId
+    ? `/roadmaps/${currentRoadmapId}`
+    : "/dashboard",
+},
+
     {
       name: "Lessons",
       icon: BookOpen,

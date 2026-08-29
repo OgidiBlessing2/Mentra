@@ -13,10 +13,15 @@ import noteRoutes from "./routes/note.routes.js";
 import bookmarkRoutes from "./routes/bookmark.routes.js";
 import projectRoutes from "./routes/project.routes.js";
 import flashcardRoutes from "./routes/flashcard.routes.js";
+
 import { clerkMiddleware } from "@clerk/express";
 import quizRoutes from "./routes/quiz.route.js";
-dotenv.config();
 
+
+
+import { startJobs } from "./jobs/index.js";
+dotenv.config();
+startJobs();
 const app = express();
 app.use((req, res, next) => {
   console.log("🌐 REQUEST:", req.method, req.originalUrl);
