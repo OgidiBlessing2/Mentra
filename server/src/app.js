@@ -21,7 +21,7 @@ import quizRoutes from "./routes/quiz.route.js";
 
 import { startJobs } from "./jobs/index.js";
 dotenv.config();
-startJobs();
+// startJobs();
 const app = express();
 app.use((req, res, next) => {
   console.log("🌐 REQUEST:", req.method, req.originalUrl);

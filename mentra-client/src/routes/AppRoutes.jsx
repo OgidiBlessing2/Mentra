@@ -16,6 +16,7 @@ import Bookmarks from "../pages/Bookmarks/Bookmarks";
 import Flashcards from "../pages/FlashCards/Flashcard";
 import Roadmap from "../pages/Roadmap/Roadmap";
 import Projects from "../pages/Project/Project";
+import ProjectDetails from "../pages/Project/ProjectDetail.jsx";
 export default function AppRoutes() {
   return (
     <Routes>
@@ -147,6 +148,21 @@ export default function AppRoutes() {
     <>
       <SignedIn>
         <Achievements />
+      </SignedIn>
+
+      <SignedOut>
+        <Navigate to="/sign-in" replace />
+      </SignedOut>
+    </>
+  }
+/>
+
+<Route
+  path="/projects/:id"
+  element={
+    <>
+      <SignedIn>
+        <ProjectDetails />
       </SignedIn>
 
       <SignedOut>

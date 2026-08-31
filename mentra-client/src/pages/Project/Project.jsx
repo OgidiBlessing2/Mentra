@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../layout/DashboardLayout";
 import { useProjects } from "../../hooks/useProjects";
 import {
@@ -8,14 +9,14 @@ import {
   ExternalLink,
   X,
 } from "lucide-react";
-
 export default function Projects() {
-  const {
-    projects,
-    isLoading,
-    addProject,
-    isCreating,d
-  } = useProjects();
+ const {
+  projects,
+  isLoading,
+  addProject,
+  isCreating,
+} = useProjects();
+  const navigate = useNavigate();
 
   const [showForm, setShowForm] = useState(false);
 
@@ -24,6 +25,23 @@ export default function Projects() {
   const [githubUrl, setGithubUrl] = useState("");
   const [liveUrl, setLiveUrl] = useState("");
   const [status, setStatus] = useState("planned");
+
+
+  useEffect(() => {
+  function handleEscape(e) {
+    if (e.key === "Escape") {
+      setShowForm(false);
+    }
+  }
+
+  if (showForm) {
+    document.addEventListener("keydown", handleEscape);
+  }
+
+  return () => {
+    document.removeEventListener("keydown", handleEscape);
+  };
+}, [showForm]);
 
   async function handleCreateProject(e) {
     e.preventDefault();
@@ -108,9 +126,10 @@ export default function Projects() {
 
             {projects.map((project) => (
               <div
-                key={project.id}
-                className="rounded-3xl border border-white/10 bg-[#18181B] p-6 transition hover:border-violet-500/30"
-              >
+  key={project.id}
+  onClick={() => navigate(`/projects/${project.id}`)}
+  className="cursor-pointer rounded-3xl border border-white/10 bg-[#18181B] p-6 transition hover:border-violet-500/30 hover:-translate-y-1"
+>
 
                 <div className="flex items-start justify-between gap-4">
 
@@ -143,7 +162,7 @@ export default function Projects() {
                       rel="noreferrer"
                       className="flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white"
                     >
-                      <Github size={16} />
+                     <span className="text-sm font-bold">GH</span>
                       GitHub
                     </a>
                   )}
@@ -199,7 +218,14 @@ export default function Projects() {
 
       {/* Create Project Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 px-4 py-8 backdrop-blur-sm">
+        <div
+  className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 px-4 py-8 backdrop-blur-sm"
+  onMouseDown={(e) => {
+    if (e.target === e.currentTarget) {
+      setShowForm(false);
+    }
+  }}
+>
 
           <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-[#18181B] p-6 shadow-2xl sm:p-8">
 

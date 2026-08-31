@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import { db } from "../db/index.js";
-import { users } from "../db/schema.js";
+import { users } from "../db/schema/users.js";
 
 export function startStreakJob() {
   // Runs every day at midnight
