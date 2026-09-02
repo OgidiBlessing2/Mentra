@@ -1,7 +1,6 @@
-
 import { eq, and, asc } from "drizzle-orm";
 
-import {db} from "../db/index.js";
+import { db } from "../db/index.js";
 import { projectTasks } from "../db/schema/projectTasks.js";
 import { projects } from "../db/schema/projects.js";
 
@@ -48,6 +47,8 @@ export const getProjectTasksService = async (userId, projectId) => {
       asc(projectTasks.createdAt)
     );
 };
+
+
 // Create a task
 export const createProjectTaskService = async (
   userId,
@@ -76,6 +77,8 @@ export const createProjectTaskService = async (
       title: data.title,
       description: data.description || null,
       status: data.status || "todo",
+      priority: data.priority || "medium",
+      dueDate: data.dueDate || null,
       position: data.position || 0,
     })
     .returning();
@@ -119,6 +122,14 @@ export const updateProjectTaskService = async (
 
       ...(data.status !== undefined && {
         status: data.status,
+      }),
+
+      ...(data.priority !== undefined && {
+        priority: data.priority,
+      }),
+
+      ...(data.dueDate !== undefined && {
+        dueDate: data.dueDate || null,
       }),
 
       ...(data.position !== undefined && {

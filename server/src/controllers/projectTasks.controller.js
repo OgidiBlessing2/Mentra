@@ -1,4 +1,3 @@
-
 import {
   getProjectTasksService,
   createProjectTaskService,
@@ -6,13 +5,10 @@ import {
   deleteProjectTaskService,
 } from "../services/projectTasks.service.js";
 
-
 // GET /api/projects/:projectId/tasks
 export const getProjectTasks = async (req, res) => {
   try {
     const { projectId } = req.params;
-
-    // Use the synced database user
     const userId = req.user.id;
 
     const tasks = await getProjectTasksService(
@@ -24,7 +20,6 @@ export const getProjectTasks = async (req, res) => {
       success: true,
       tasks,
     });
-
   } catch (error) {
     console.error("Get project tasks error:", error);
 
@@ -34,7 +29,6 @@ export const getProjectTasks = async (req, res) => {
     });
   }
 };
-
 
 // POST /api/projects/:projectId/tasks
 export const createProjectTask = async (req, res) => {
@@ -46,6 +40,8 @@ export const createProjectTask = async (req, res) => {
       title,
       description,
       status,
+      priority,
+      dueDate,
       position,
     } = req.body;
 
@@ -56,6 +52,18 @@ export const createProjectTask = async (req, res) => {
       });
     }
 
+    const allowedPriorities = ["low", "medium", "high"];
+
+    if (
+      priority !== undefined &&
+      !allowedPriorities.includes(priority)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid task priority",
+      });
+    }
+
     const task = await createProjectTaskService(
       userId,
       projectId,
@@ -63,6 +71,8 @@ export const createProjectTask = async (req, res) => {
         title: title.trim(),
         description,
         status,
+        priority,
+        dueDate,
         position,
       }
     );
@@ -71,7 +81,6 @@ export const createProjectTask = async (req, res) => {
       success: true,
       task,
     });
-
   } catch (error) {
     console.error("Create project task error:", error);
 
@@ -81,7 +90,6 @@ export const createProjectTask = async (req, res) => {
     });
   }
 };
-
 
 // PATCH /api/projects/:projectId/tasks/:taskId
 export const updateProjectTask = async (req, res) => {
@@ -100,7 +108,6 @@ export const updateProjectTask = async (req, res) => {
       success: true,
       task,
     });
-
   } catch (error) {
     console.error("Update project task error:", error);
 
@@ -110,7 +117,6 @@ export const updateProjectTask = async (req, res) => {
     });
   }
 };
-
 
 // DELETE /api/projects/:projectId/tasks/:taskId
 export const deleteProjectTask = async (req, res) => {
@@ -128,7 +134,6 @@ export const deleteProjectTask = async (req, res) => {
       success: true,
       task,
     });
-
   } catch (error) {
     console.error("Delete project task error:", error);
 

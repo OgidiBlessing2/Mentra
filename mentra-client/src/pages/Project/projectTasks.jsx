@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -31,6 +30,8 @@ export default function ProjectTasks({ projectId }) {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState("medium");
+  const [dueDate, setDueDate] = useState("");
   const [showForm, setShowForm] = useState(false);
 
   // -----------------------------------------
@@ -40,54 +41,49 @@ export default function ProjectTasks({ projectId }) {
   const [editingTask, setEditingTask] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editPriority, setEditPriority] = useState("medium");
+  const [editDueDate, setEditDueDate] = useState("");
 
   // -----------------------------------------
   // Create task
   // -----------------------------------------
 
   async function handleCreateTask(e) {
-  e.preventDefault();
+    e.preventDefault();
 
-  console.log("🔥 FORM SUBMITTED");
-  console.log("projectId:", projectId);
-  console.log("title:", title);
-  console.log("description:", description);
-  console.log("createTask:", createTask);
-  console.log("createTask.mutateAsync:", createTask?.mutateAsync);
+    if (!title.trim()) {
+      return;
+    }
 
-  if (!title.trim()) {
-    console.log("❌ Title is empty");
-    return;
+    if (!createTask?.mutateAsync) {
+      console.error("❌ createTask.mutateAsync does not exist");
+      return;
+    }
+
+    try {
+      const result = await createTask.mutateAsync({
+        title: title.trim(),
+        description: description.trim(),
+        status: "todo",
+        priority,
+        dueDate: dueDate || null,
+        position: tasks.length,
+      });
+
+      console.log("✅ CREATE TASK RESULT:", result);
+
+      setTitle("");
+      setDescription("");
+      setPriority("medium");
+      setDueDate("");
+      setShowForm(false);
+    } catch (error) {
+      console.error(
+        "❌ CREATE TASK FAILED:",
+        error?.response?.data || error
+      );
+    }
   }
-
-  if (!createTask?.mutateAsync) {
-    console.error("❌ createTask.mutateAsync does not exist");
-    return;
-  }
-
-  try {
-    console.log("🚀 ABOUT TO CALL createTask.mutateAsync");
-
-    const result = await createTask.mutateAsync({
-      title: title.trim(),
-      description: description.trim(),
-      status: "todo",
-      position: tasks.length,
-    });
-
-    console.log("✅ CREATE TASK RESULT:", result);
-
-    setTitle("");
-    setDescription("");
-    setShowForm(false);
-  } catch (error) {
-    console.error("❌ CREATE TASK FAILED");
-    console.error("Error:", error);
-    console.error("Response:", error?.response);
-    console.error("Response data:", error?.response?.data);
-    console.error("Status:", error?.response?.status);
-  }
-}
 
   // -----------------------------------------
   // Toggle task completion
@@ -95,8 +91,6 @@ export default function ProjectTasks({ projectId }) {
 
   async function handleToggleTask(task) {
     try {
-      console.log("🔄 Updating task:", task.id);
-
       await updateTask.mutateAsync({
         taskId: task.id,
         data: {
@@ -106,8 +100,6 @@ export default function ProjectTasks({ projectId }) {
               : "completed",
         },
       });
-
-      console.log("✅ Task updated");
     } catch (error) {
       console.error(
         "❌ Failed to update task:",
@@ -124,6 +116,8 @@ export default function ProjectTasks({ projectId }) {
     setEditingTask(task);
     setEditTitle(task.title || "");
     setEditDescription(task.description || "");
+    setEditPriority(task.priority || "medium");
+    setEditDueDate(task.dueDate || "");
   }
 
   // -----------------------------------------
@@ -142,13 +136,13 @@ export default function ProjectTasks({ projectId }) {
     }
 
     try {
-      console.log("✏️ Updating task:", editingTask.id);
-
       await updateTask.mutateAsync({
         taskId: editingTask.id,
         data: {
           title: editTitle.trim(),
           description: editDescription.trim(),
+          priority: editPriority,
+          dueDate: editDueDate || null,
         },
       });
 
@@ -157,6 +151,8 @@ export default function ProjectTasks({ projectId }) {
       setEditingTask(null);
       setEditTitle("");
       setEditDescription("");
+      setEditPriority("medium");
+      setEditDueDate("");
     } catch (error) {
       console.error(
         "❌ Failed to update task:",
@@ -184,8 +180,6 @@ export default function ProjectTasks({ projectId }) {
     }
 
     try {
-      console.log("🗑️ Deleting task:", taskId);
-
       await deleteTask.mutateAsync(taskId);
 
       console.log("✅ Task deleted successfully");
@@ -209,6 +203,8 @@ export default function ProjectTasks({ projectId }) {
   function openCreateModal() {
     setTitle("");
     setDescription("");
+    setPriority("medium");
+    setDueDate("");
     setShowForm(true);
   }
 
@@ -223,6 +219,8 @@ export default function ProjectTasks({ projectId }) {
 
     setTitle("");
     setDescription("");
+    setPriority("medium");
+    setDueDate("");
     setShowForm(false);
   }
 
@@ -341,7 +339,7 @@ export default function ProjectTasks({ projectId }) {
         {isError && !isLoading && (
           <div className="mt-8 rounded-3xl border border-red-500/20 bg-red-500/5 p-8 text-center">
 
-            <h2 className="text-xl font-bold text-white">
+            <h2 className="text-xl font-bold">
               Unable to load tasks
             </h2>
 
@@ -358,6 +356,7 @@ export default function ProjectTasks({ projectId }) {
 
             {tasks.length > 0 ? (
               tasks.map((task) => {
+
                 const isCompleted =
                   task.status === "completed";
 
@@ -423,8 +422,10 @@ export default function ProjectTasks({ projectId }) {
                           </p>
                         )}
 
-                        {/* Status */}
-                        <div className="mt-3">
+                        {/* Task metadata */}
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+
+                          {/* Status */}
                           <span
                             className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${
                               isCompleted
@@ -438,6 +439,27 @@ export default function ProjectTasks({ projectId }) {
                               ? "In Progress"
                               : task.status}
                           </span>
+
+                          {/* Priority */}
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${
+                              task.priority === "high"
+                                ? "bg-red-500/10 text-red-400"
+                                : task.priority === "low"
+                                ? "bg-slate-500/10 text-slate-400"
+                                : "bg-amber-500/10 text-amber-400"
+                            }`}
+                          >
+                            {task.priority || "medium"} priority
+                          </span>
+
+                          {/* Due date */}
+                          {task.dueDate && (
+                            <span className="inline-flex items-center rounded-full bg-white/5 px-2.5 py-1 text-xs font-medium text-slate-400">
+                              📅 {task.dueDate}
+                            </span>
+                          )}
+
                         </div>
 
                       </div>
@@ -523,7 +545,6 @@ export default function ProjectTasks({ projectId }) {
 
           <div className="w-full max-w-xl rounded-[2rem] border border-white/10 bg-[#18181B] p-6 shadow-2xl sm:p-8">
 
-            {/* Modal header */}
             <div className="flex items-start justify-between">
 
               <div>
@@ -548,7 +569,6 @@ export default function ProjectTasks({ projectId }) {
 
             </div>
 
-            {/* Form */}
             <form
               onSubmit={handleCreateTask}
               className="mt-7 space-y-5"
@@ -588,24 +608,63 @@ export default function ProjectTasks({ projectId }) {
                 />
               </div>
 
+              {/* Priority + Due Date */}
+              <div className="grid gap-5 sm:grid-cols-2">
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-300">
+                    Priority
+                  </label>
+
+                  <select
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value)}
+                    disabled={createTask.isPending}
+                    className="w-full rounded-xl border border-white/10 bg-[#232326] px-4 py-3 text-white outline-none focus:border-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-300">
+                    Due date
+                  </label>
+
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    disabled={createTask.isPending}
+                    className="w-full rounded-xl border border-white/10 bg-[#232326] px-4 py-3 text-white outline-none focus:border-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
+
+              </div>
+
               {/* Submit */}
-            <button
-  type="submit"
-  disabled={createTask?.isPending || !title.trim()}
-  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-600 py-3 font-bold transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
->
-  {createTask?.isPending ? (
-    <>
-      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-      Creating Task...
-    </>
-  ) : (
-    <>
-      <Plus size={18} />
-      Add Task
-    </>
-  )}
-</button>
+              <button
+                type="submit"
+                disabled={
+                  createTask.isPending ||
+                  !title.trim()
+                }
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-600 py-3 font-bold transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {createTask.isPending ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Creating Task...
+                  </>
+                ) : (
+                  <>
+                    <Plus size={18} />
+                    Add Task
+                  </>
+                )}
+              </button>
 
             </form>
 
@@ -630,7 +689,6 @@ export default function ProjectTasks({ projectId }) {
 
           <div className="w-full max-w-xl rounded-[2rem] border border-white/10 bg-[#18181B] p-6 shadow-2xl sm:p-8">
 
-            {/* Modal header */}
             <div className="flex items-start justify-between">
 
               <div>
@@ -655,7 +713,6 @@ export default function ProjectTasks({ projectId }) {
 
             </div>
 
-            {/* Edit form */}
             <form
               onSubmit={handleUpdateTask}
               className="mt-7 space-y-5"
@@ -692,6 +749,46 @@ export default function ProjectTasks({ projectId }) {
                   disabled={updateTask.isPending}
                   className="w-full resize-none rounded-xl border border-white/10 bg-[#232326] px-4 py-3 text-white outline-none focus:border-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
+              </div>
+
+              {/* Priority + Due Date */}
+              <div className="grid gap-5 sm:grid-cols-2">
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-300">
+                    Priority
+                  </label>
+
+                  <select
+                    value={editPriority}
+                    onChange={(e) =>
+                      setEditPriority(e.target.value)
+                    }
+                    disabled={updateTask.isPending}
+                    className="w-full rounded-xl border border-white/10 bg-[#232326] px-4 py-3 text-white outline-none focus:border-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-300">
+                    Due date
+                  </label>
+
+                  <input
+                    type="date"
+                    value={editDueDate}
+                    onChange={(e) =>
+                      setEditDueDate(e.target.value)
+                    }
+                    disabled={updateTask.isPending}
+                    className="w-full rounded-xl border border-white/10 bg-[#232326] px-4 py-3 text-white outline-none focus:border-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
+
               </div>
 
               {/* Submit */}
