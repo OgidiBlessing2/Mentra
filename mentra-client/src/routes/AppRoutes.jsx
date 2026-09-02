@@ -1,27 +1,31 @@
+
 import { Routes, Route, Navigate } from "react-router-dom";
+import { SignedIn, SignedOut } from "@clerk/clerk-react";
+
+// Pages
 import Onboarding from "../pages/Onboarding/Onboarding";
-import {
-  SignedIn,
-  SignedOut,
-} from "@clerk/clerk-react";
 import Lesson from "../pages/Lesson/Lesson.jsx";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import Quiz from "../pages/Dashboard/Quiz";
 import Achievements from "../pages/Achievements/Achievements";
-// Auth Pages
-import SignInPage from "../pages/Auth/SignInPage";
-import SignUpPage from "../pages/Auth/SignUpPage";
 import Notes from "../pages/Notes/Notes";
 import Bookmarks from "../pages/Bookmarks/Bookmarks";
 import Flashcards from "../pages/FlashCards/Flashcard";
 import Roadmap from "../pages/Roadmap/Roadmap";
+
+// Auth
+import SignInPage from "../pages/Auth/SignInPage";
+import SignUpPage from "../pages/Auth/SignUpPage";
+
+// Projects
 import Projects from "../pages/Project/Project";
-import ProjectDetails from "../pages/Project/ProjectDetail.jsx";
+import ProjectDetail from "../pages/Project/ProjectDetail.jsx";
+
 export default function AppRoutes() {
   return (
     <Routes>
 
-      {/* ---------- PUBLIC ---------- */}
+      {/* ================= PUBLIC ================= */}
 
       <Route
         path="/sign-in/*"
@@ -34,8 +38,7 @@ export default function AppRoutes() {
       />
 
 
-
-      {/* ---------- PROTECTED ---------- */}
+      {/* ================= PROTECTED ================= */}
 
       <Route
         path="/dashboard"
@@ -52,149 +55,166 @@ export default function AppRoutes() {
         }
       />
 
+      <Route
+        path="/onboarding"
+        element={
+          <>
+            <SignedIn>
+              <Onboarding />
+            </SignedIn>
+
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        }
+      />
 
       <Route
-    path="/onboarding"
-    element={
-        <SignedIn>
-            <Onboarding />
-        </SignedIn>
-    }
-/>
+        path="/notes"
+        element={
+          <>
+            <SignedIn>
+              <Notes />
+            </SignedIn>
 
-<Route
-  path="/notes"
-  element={
-    <>
-      <SignedIn>
-        <Notes />
-      </SignedIn>
-
-      <SignedOut>
-        <Navigate to="/sign-in" replace />
-      </SignedOut>
-    </>
-  }
-/>
-
-<Route
-  path="/bookmarks"
-  element={
-    <>
-      <SignedIn>
-        <Bookmarks />
-      </SignedIn>
-
-      <SignedOut>
-        <Navigate to="/sign-in" replace />
-      </SignedOut>
-    </>
-  }
-/>
-
-<Route
-  path="/flashcards"
-  element={<Flashcards />}
-/>
-
-<Route
-  path="/roadmaps/:id"
-  element={
-    <>
-      <SignedIn>
-        <Roadmap />
-      </SignedIn>
-
-      <SignedOut>
-        <Navigate to="/sign-in" replace />
-      </SignedOut>
-    </>
-  }
-/>
-
-<Route
-  path="/lessons/:id"
-  element={
-    <>
-      <SignedIn>
-        <Lesson />
-      </SignedIn>
-
-      <SignedOut>
-        <Navigate to="/sign-in" replace />
-      </SignedOut>
-    </>
-  }
-/>
-
-<Route
-  path="/quiz/:lessonId"
-  element={
-    <>
-      <SignedIn>
-        <Quiz />
-      </SignedIn>
-
-      <SignedOut>
-        <Navigate to="/sign-in" replace />
-      </SignedOut>
-    </>
-  }
-/>
-
-<Route
-  path="/achievements"
-  element={
-    <>
-      <SignedIn>
-        <Achievements />
-      </SignedIn>
-
-      <SignedOut>
-        <Navigate to="/sign-in" replace />
-      </SignedOut>
-    </>
-  }
-/>
-
-<Route
-  path="/projects/:id"
-  element={
-    <>
-      <SignedIn>
-        <ProjectDetails />
-      </SignedIn>
-
-      <SignedOut>
-        <Navigate to="/sign-in" replace />
-      </SignedOut>
-    </>
-  }
-/>
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        }
+      />
 
       <Route
-  path="/projects"
-  element={
-    <>
-      <SignedIn>
-        <Projects />
-      </SignedIn>
+        path="/bookmarks"
+        element={
+          <>
+            <SignedIn>
+              <Bookmarks />
+            </SignedIn>
 
-      <SignedOut>
-        <Navigate to="/sign-in" replace />
-      </SignedOut>
-    </>
-  }
-/>
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        }
+      />
+
+      <Route
+        path="/flashcards"
+        element={
+          <>
+            <SignedIn>
+              <Flashcards />
+            </SignedIn>
+
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        }
+      />
+
+      <Route
+        path="/roadmaps/:id"
+        element={
+          <>
+            <SignedIn>
+              <Roadmap />
+            </SignedIn>
+
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        }
+      />
+
+      <Route
+        path="/lessons/:id"
+        element={
+          <>
+            <SignedIn>
+              <Lesson />
+            </SignedIn>
+
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        }
+      />
+
+      <Route
+        path="/quiz/:lessonId"
+        element={
+          <>
+            <SignedIn>
+              <Quiz />
+            </SignedIn>
+
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        }
+      />
+
+      <Route
+        path="/achievements"
+        element={
+          <>
+            <SignedIn>
+              <Achievements />
+            </SignedIn>
+
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        }
+      />
 
 
-      {/* Temporary */}
+      {/* ================= PROJECTS ================= */}
+
+      <Route
+        path="/projects"
+        element={
+          <>
+            <SignedIn>
+              <Projects />
+            </SignedIn>
+
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        }
+      />
+
+      <Route
+        path="/projects/:projectId"
+        element={
+          <>
+            <SignedIn>
+              <ProjectDetail />
+            </SignedIn>
+
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        }
+      />
+
+
+      {/* ================= DEFAULT ================= */}
+
       <Route
         path="/"
         element={<Navigate to="/dashboard" replace />}
       />
-
-      {/* 404 */}
 
       <Route
         path="*"

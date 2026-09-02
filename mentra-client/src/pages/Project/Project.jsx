@@ -1,21 +1,26 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../layout/DashboardLayout";
 import { useProjects } from "../../hooks/useProjects";
+
 import {
   FolderKanban,
   Plus,
   Rocket,
   ExternalLink,
   X,
+  ArrowRight,
 } from "lucide-react";
+
 export default function Projects() {
- const {
-  projects,
-  isLoading,
-  addProject,
-  isCreating,
-} = useProjects();
+  const {
+    projects,
+    isLoading,
+    addProject,
+    isCreating,
+  } = useProjects();
+
   const navigate = useNavigate();
 
   const [showForm, setShowForm] = useState(false);
@@ -26,22 +31,21 @@ export default function Projects() {
   const [liveUrl, setLiveUrl] = useState("");
   const [status, setStatus] = useState("planned");
 
-
   useEffect(() => {
-  function handleEscape(e) {
-    if (e.key === "Escape") {
-      setShowForm(false);
+    function handleEscape(e) {
+      if (e.key === "Escape") {
+        setShowForm(false);
+      }
     }
-  }
 
-  if (showForm) {
-    document.addEventListener("keydown", handleEscape);
-  }
+    if (showForm) {
+      document.addEventListener("keydown", handleEscape);
+    }
 
-  return () => {
-    document.removeEventListener("keydown", handleEscape);
-  };
-}, [showForm]);
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [showForm]);
 
   async function handleCreateProject(e) {
     e.preventDefault();
@@ -65,11 +69,19 @@ export default function Projects() {
 
       setShowForm(false);
     } catch (error) {
-      console.error(
-        "❌ Failed to create project:",
-        error
-      );
+      console.error("❌ Failed to create project:", error);
     }
+  }
+
+  function openProject(projectId) {
+    if (!projectId) {
+      console.error("❌ Project ID is missing");
+      return;
+    }
+
+    console.log("📂 Opening project:", projectId);
+
+    navigate(`/projects/${projectId}`);
   }
 
   return (
@@ -98,6 +110,7 @@ export default function Projects() {
           </div>
 
           <button
+            type="button"
             onClick={() => setShowForm(true)}
             className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-cyan-600 px-5 py-3 font-bold text-white shadow-lg shadow-violet-500/20 transition hover:scale-[1.02]"
           >
@@ -111,11 +124,13 @@ export default function Projects() {
         {isLoading && (
           <div className="flex min-h-[400px] items-center justify-center">
             <div className="text-center">
+
               <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
 
               <p className="mt-4 text-slate-400">
                 Loading projects...
               </p>
+
             </div>
           </div>
         )}
@@ -126,11 +141,19 @@ export default function Projects() {
 
             {projects.map((project) => (
               <div
-  key={project.id}
-  onClick={() => navigate(`/projects/${project.id}`)}
-  className="cursor-pointer rounded-3xl border border-white/10 bg-[#18181B] p-6 transition hover:border-violet-500/30 hover:-translate-y-1"
->
+                key={project.id}
+                onClick={() => openProject(project.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    openProject(project.id);
+                  }
+                }}
+                className="group cursor-pointer rounded-3xl border border-white/10 bg-[#18181B] p-6 transition duration-200 hover:-translate-y-1 hover:border-violet-500/40 hover:shadow-xl hover:shadow-violet-500/5"
+              >
 
+                {/* Card top */}
                 <div className="flex items-start justify-between gap-4">
 
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-400">
@@ -143,6 +166,7 @@ export default function Projects() {
 
                 </div>
 
+                {/* Project information */}
                 <h2 className="mt-5 text-xl font-bold text-white">
                   {project.title}
                 </h2>
@@ -153,16 +177,21 @@ export default function Projects() {
                   </p>
                 )}
 
-                <div className="mt-6 flex gap-3">
+                {/* Links */}
+                <div className="mt-6 flex flex-wrap gap-3">
 
                   {project.githubUrl && (
                     <a
                       href={project.githubUrl}
                       target="_blank"
                       rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       className="flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white"
                     >
-                     <span className="text-sm font-bold">GH</span>
+                      <span className="text-sm font-bold">
+                        GH
+                      </span>
+
                       GitHub
                     </a>
                   )}
@@ -172,12 +201,27 @@ export default function Projects() {
                       href={project.liveUrl}
                       target="_blank"
                       rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       className="flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white"
                     >
                       <ExternalLink size={16} />
                       Live
                     </a>
                   )}
+
+                </div>
+
+                {/* Open project */}
+                <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-4">
+
+                  <span className="text-sm font-medium text-slate-500 transition group-hover:text-violet-400">
+                    Open project
+                  </span>
+
+                  <ArrowRight
+                    size={18}
+                    className="text-slate-600 transition group-hover:translate-x-1 group-hover:text-violet-400"
+                  />
 
                 </div>
 
@@ -204,6 +248,7 @@ export default function Projects() {
             </p>
 
             <button
+              type="button"
               onClick={() => setShowForm(true)}
               className="mt-7 flex items-center gap-2 rounded-2xl bg-white px-6 py-3 font-bold text-black transition hover:bg-slate-200"
             >
@@ -219,13 +264,13 @@ export default function Projects() {
       {/* Create Project Modal */}
       {showForm && (
         <div
-  className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 px-4 py-8 backdrop-blur-sm"
-  onMouseDown={(e) => {
-    if (e.target === e.currentTarget) {
-      setShowForm(false);
-    }
-  }}
->
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 px-4 py-8 backdrop-blur-sm"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowForm(false);
+            }
+          }}
+        >
 
           <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-[#18181B] p-6 shadow-2xl sm:p-8">
 
@@ -267,9 +312,7 @@ export default function Projects() {
                 <input
                   type="text"
                   value={title}
-                  onChange={(e) =>
-                    setTitle(e.target.value)
-                  }
+                  onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Mentra"
                   required
                   className="w-full rounded-xl border border-white/10 bg-[#232326] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-violet-500"
@@ -284,9 +327,7 @@ export default function Projects() {
 
                 <textarea
                   value={description}
-                  onChange={(e) =>
-                    setDescription(e.target.value)
-                  }
+                  onChange={(e) => setDescription(e.target.value)}
                   placeholder="What are you building?"
                   rows={4}
                   className="w-full resize-none rounded-xl border border-white/10 bg-[#232326] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-violet-500"
@@ -302,9 +343,7 @@ export default function Projects() {
                 <input
                   type="url"
                   value={githubUrl}
-                  onChange={(e) =>
-                    setGithubUrl(e.target.value)
-                  }
+                  onChange={(e) => setGithubUrl(e.target.value)}
                   placeholder="https://github.com/..."
                   className="w-full rounded-xl border border-white/10 bg-[#232326] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-violet-500"
                 />
@@ -319,9 +358,7 @@ export default function Projects() {
                 <input
                   type="url"
                   value={liveUrl}
-                  onChange={(e) =>
-                    setLiveUrl(e.target.value)
-                  }
+                  onChange={(e) => setLiveUrl(e.target.value)}
                   placeholder="https://your-project.com"
                   className="w-full rounded-xl border border-white/10 bg-[#232326] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-violet-500"
                 />
@@ -335,9 +372,7 @@ export default function Projects() {
 
                 <select
                   value={status}
-                  onChange={(e) =>
-                    setStatus(e.target.value)
-                  }
+                  onChange={(e) => setStatus(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-[#232326] px-4 py-3 text-white outline-none focus:border-violet-500"
                 >
                   <option value="planned">
