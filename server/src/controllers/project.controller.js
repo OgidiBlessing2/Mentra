@@ -4,6 +4,7 @@ import {
   getProjectService,
   updateProjectService,
   deleteProjectService,
+  searchProjectsService,
 } from "../services/project.service.js";
 
 
@@ -118,6 +119,45 @@ export async function getProject(req, res) {
     );
 
     res.status(404).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
+
+// -----------------------------------------
+// Search Projects
+// -----------------------------------------
+
+export async function searchProjects(req, res) {
+  try {
+    const userId = req.user.id;
+    const { q } = req.query;
+
+    if (!q?.trim()) {
+      return res.json({
+        success: true,
+        projects: [],
+      });
+    }
+
+    const projects = await searchProjectsService(
+      userId,
+      q
+    );
+
+    res.json({
+      success: true,
+      projects,
+    });
+
+  } catch (error) {
+    console.error(
+      "❌ Failed to search projects:",
+      error
+    );
+
+    res.status(500).json({
       success: false,
       message: error.message,
     });

@@ -6,8 +6,8 @@ import {
   getProject,
   updateProject,
   deleteProject,
+  searchProjects,
 } from "../controllers/project.controller.js";
-
 import { protect } from "../middlewares/auth.middleware.js";
 
 const router = Router();
@@ -24,6 +24,13 @@ router.get(
   "/",
   protect,
   getProjects
+);
+
+// Search user's projects
+router.get(
+  "/search",
+  protect,
+  searchProjects
 );
 
 // Get single project

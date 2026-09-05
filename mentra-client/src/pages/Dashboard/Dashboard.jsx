@@ -30,17 +30,25 @@ export default function Dashboard() {
     isLoading: achievementsLoading,
   } = useAchievements();
 
+  /* ============================= */
+  /* LOADING */
+  /* ============================= */
+
   if (isLoading) {
     return (
       <DashboardLayout>
         <div className="flex min-h-[60vh] w-full items-center justify-center">
-          <p className="text-lg text-slate-400">
+          <p className="text-lg text-[var(--mentra-text-muted)]">
             Loading dashboard...
           </p>
         </div>
       </DashboardLayout>
     );
   }
+
+  /* ============================= */
+  /* ERROR */
+  /* ============================= */
 
   if (error) {
     return (
@@ -56,11 +64,15 @@ export default function Dashboard() {
 
   const dashboard = data?.dashboard;
 
+  /* ============================= */
+  /* NO DATA */
+  /* ============================= */
+
   if (!dashboard) {
     return (
       <DashboardLayout>
         <div className="flex min-h-[60vh] w-full items-center justify-center px-4 text-center">
-          <p className="text-lg text-slate-400">
+          <p className="text-lg text-[var(--mentra-text-muted)]">
             No dashboard data found.
           </p>
         </div>
@@ -71,21 +83,33 @@ export default function Dashboard() {
   const roadmap = dashboard.currentRoadmap;
   const currentLesson = dashboard.currentLesson;
 
+  /* ============================= */
+  /* NO ROADMAP */
+  /* ============================= */
+
   if (!roadmap) {
     return (
       <DashboardLayout>
         <div className="mx-auto w-full max-w-4xl px-4 py-20 text-center">
-          <h1 className="text-2xl font-bold text-white sm:text-3xl">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-400">
+            <Route size={30} />
+          </div>
+
+          <h1 className="mt-6 text-2xl font-bold text-[var(--mentra-text)] sm:text-3xl">
             Welcome to Mentra 👋
           </h1>
 
-          <p className="mt-4 text-sm text-slate-400 sm:text-base">
+          <p className="mt-4 text-sm text-[var(--mentra-text-muted)] sm:text-base">
             Create your learning roadmap to start learning.
           </p>
         </div>
       </DashboardLayout>
     );
   }
+
+  /* ============================= */
+  /* STATS */
+  /* ============================= */
 
   const stats = [
     {
@@ -116,15 +140,20 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-
       <div className="mx-auto w-full min-w-0 max-w-7xl">
 
-        {/* Hero */}
+        {/* ============================= */}
+        {/* HERO */}
+        {/* ============================= */}
+
         <section className="w-full min-w-0">
           <HeroBanner />
         </section>
 
-        {/* Stats */}
+        {/* ============================= */}
+        {/* STATS */}
+        {/* ============================= */}
+
         <section className="mt-6 w-full min-w-0 sm:mt-8">
           <div className="grid w-full min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {stats.map((stat) => (
@@ -140,9 +169,11 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Continue Learning + AI Mentor + Achievements */}
-        <section className="mt-6 w-full min-w-0 sm:mt-8">
+        {/* ============================= */}
+        {/* LEARNING + AI MENTOR */}
+        {/* ============================= */}
 
+        <section className="mt-6 w-full min-w-0 sm:mt-8">
           <div className="grid w-full min-w-0 grid-cols-1 gap-6 xl:grid-cols-2">
 
             <div className="min-w-0">
@@ -156,20 +187,25 @@ export default function Dashboard() {
               <AIMentorCard />
             </div>
 
-            <div className="min-w-0 xl:col-span-2">
-              <AchievementCard
-                achievements={achievements}
-                isLoading={achievementsLoading}
-              />
-            </div>
-
           </div>
-
         </section>
 
-        {/* Today's Goal + Recent Activity */}
-        <section className="mt-6 w-full min-w-0 sm:mt-8">
+        {/* ============================= */}
+        {/* ACHIEVEMENTS */}
+        {/* ============================= */}
 
+        <section className="mt-6 w-full min-w-0 sm:mt-8">
+          <AchievementCard
+            achievements={achievements}
+            isLoading={achievementsLoading}
+          />
+        </section>
+
+        {/* ============================= */}
+        {/* TODAY + ACTIVITY */}
+        {/* ============================= */}
+
+        <section className="mt-6 w-full min-w-0 sm:mt-8">
           <div className="grid w-full min-w-0 grid-cols-1 gap-6 xl:grid-cols-2">
 
             <div className="min-w-0">
@@ -181,11 +217,9 @@ export default function Dashboard() {
             </div>
 
           </div>
-
         </section>
 
       </div>
-
     </DashboardLayout>
   );
 }

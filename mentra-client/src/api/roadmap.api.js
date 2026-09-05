@@ -31,3 +31,19 @@ export async function getRoadmap(id, token) {
 
   return response.data;
 }
+
+export async function searchRoadmaps(token, query) {
+  const response = await axios.get(
+    `${API_URL}/search`,
+    {
+      params: {
+        q: query,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+}

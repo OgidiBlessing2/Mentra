@@ -12,7 +12,7 @@ import Notes from "../pages/Notes/Notes";
 import Bookmarks from "../pages/Bookmarks/Bookmarks";
 import Flashcards from "../pages/FlashCards/Flashcard";
 import Roadmap from "../pages/Roadmap/Roadmap";
-
+import Settings from "../pages/Settings/Settings";
 // Auth
 import SignInPage from "../pages/Auth/SignInPage";
 import SignUpPage from "../pages/Auth/SignUpPage";
@@ -39,6 +39,21 @@ export default function AppRoutes() {
 
 
       {/* ================= PROTECTED ================= */}
+
+      <Route
+  path="/settings"
+  element={
+    <>
+      <SignedIn>
+        <Settings />
+      </SignedIn>
+
+      <SignedOut>
+        <Navigate to="/sign-in" replace />
+      </SignedOut>
+    </>
+  }
+/>
 
       <Route
         path="/dashboard"

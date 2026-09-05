@@ -11,3 +11,41 @@ body {
   font-family: Inter, sans-serif;
   background: #f8fafc;
 }
+
+/* ============================= */
+/* MENTRA THEME SYSTEM */
+/* ============================= */
+
+:root {
+  --mentra-bg: #09090b;
+  --mentra-surface: #111113;
+  --mentra-surface-2: #18181b;
+  --mentra-border: rgba(255, 255, 255, 0.1);
+  --mentra-text: #ffffff;
+  --mentra-text-muted: #94a3b8;
+  --mentra-text-subtle: #64748b;
+}
+
+html.light {
+  --mentra-bg: #f8fafc;
+  --mentra-surface: #ffffff;
+  --mentra-surface-2: #f1f5f9;
+  --mentra-border: rgba(15, 23, 42, 0.1);
+  --mentra-text: #0f172a;
+  --mentra-text-muted: #475569;
+  --mentra-text-subtle: #64748b;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background: var(--mentra-bg);
+  color: var(--mentra-text);
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
+}

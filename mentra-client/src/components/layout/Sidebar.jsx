@@ -23,11 +23,8 @@ export default function Sidebar({
 }) {
   const { data } = useDashboard();
 
-
   const currentRoadmapId =
-  data?.dashboard?.currentRoadmap?.id;
-
-console.log("CURRENT ROADMAP ID:", currentRoadmapId);
+    data?.dashboard?.currentRoadmap?.id;
 
   const { user } = useUser();
 
@@ -40,14 +37,13 @@ console.log("CURRENT ROADMAP ID:", currentRoadmapId);
       icon: LayoutDashboard,
       path: "/dashboard",
     },
-{
-  name: "Learning Path",
-  icon: Route,
-  path: currentRoadmapId
-    ? `/roadmaps/${currentRoadmapId}`
-    : "/dashboard",
-},
-
+    {
+      name: "Learning Path",
+      icon: Route,
+      path: currentRoadmapId
+        ? `/roadmaps/${currentRoadmapId}`
+        : "/dashboard",
+    },
     {
       name: "Lessons",
       icon: BookOpen,
@@ -89,7 +85,10 @@ console.log("CURRENT ROADMAP ID:", currentRoadmapId);
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* ============================= */}
+      {/* MOBILE OVERLAY */}
+      {/* ============================= */}
+
       <div
         onClick={() => setSidebarOpen(false)}
         className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${
@@ -99,35 +98,50 @@ console.log("CURRENT ROADMAP ID:", currentRoadmapId);
         }`}
       />
 
-      {/* Sidebar */}
-    <aside
-  className={`
-    fixed inset-y-0 left-0 z-50
-    flex w-72 shrink-0 flex-col
-    border-r border-white/10 bg-[#111827]
-    transition-transform duration-300
-    lg:static lg:flex
-    ${
-      sidebarOpen
-        ? "translate-x-0"
-        : "-translate-x-full lg:translate-x-0"
-    }
-  `}
->
+      {/* ============================= */}
+      {/* SIDEBAR */}
+      {/* ============================= */}
 
-  <div className="flex justify-end p-4 lg:hidden">
-  <button
-    onClick={() => setSidebarOpen(false)}
-    className="rounded-xl p-2 text-slate-400 hover:bg-white/5 hover:text-white"
-  >
-    ✕
-  </button>
-</div>
-        {/* Logo */}
-        <div className="flex items-center justify-between px-6 pb-8 pt-8 lg:px-8 lg:pb-10">
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50
+          flex w-72 shrink-0 flex-col
+          border-r border-[var(--mentra-border)]
+          bg-[var(--mentra-surface)]
+          transition-transform duration-300
+          lg:static lg:flex
+          ${
+            sidebarOpen
+              ? "translate-x-0"
+              : "-translate-x-full lg:translate-x-0"
+          }
+        `}
+      >
+
+        {/* ============================= */}
+        {/* MOBILE CLOSE */}
+        {/* ============================= */}
+
+        <div className="flex justify-end p-4 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            className="rounded-xl p-2 text-[var(--mentra-text-muted)] transition hover:bg-black/5 hover:text-[var(--mentra-text)]"
+            aria-label="Close navigation"
+          >
+            <X size={22} />
+          </button>
+        </div>
+
+        {/* ============================= */}
+        {/* LOGO */}
+        {/* ============================= */}
+
+        <div className="flex items-center justify-between px-6 pb-8 pt-4 lg:px-8 lg:pb-10 lg:pt-8">
 
           <div className="flex items-center gap-3">
 
+            {/* Logo */}
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 shadow-lg shadow-violet-500/20">
               <Sparkles
                 className="text-white"
@@ -135,12 +149,13 @@ console.log("CURRENT ROADMAP ID:", currentRoadmapId);
               />
             </div>
 
+            {/* Brand */}
             <div>
-              <h1 className="text-2xl font-black text-white">
+              <h1 className="text-2xl font-black text-[var(--mentra-text)]">
                 Mentra
               </h1>
 
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-[var(--mentra-text-muted)]">
                 Learn Smarter
               </p>
             </div>
@@ -148,16 +163,21 @@ console.log("CURRENT ROADMAP ID:", currentRoadmapId);
           </div>
 
           {/* Mobile close */}
-  <button
-    onClick={() => setSidebarOpen(false)}
-    className="rounded-xl p-2 text-slate-400 transition hover:bg-white/5 hover:text-white lg:hidden"
-  >
-    <X size={22} />
-  </button>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            className="rounded-xl p-2 text-[var(--mentra-text-muted)] transition hover:bg-black/5 hover:text-[var(--mentra-text)] lg:hidden"
+            aria-label="Close navigation"
+          >
+            <X size={22} />
+          </button>
 
-</div>
+        </div>
 
-        {/* Navigation */}
+        {/* ============================= */}
+        {/* NAVIGATION */}
+        {/* ============================= */}
+
         <nav className="flex-1 space-y-2 overflow-y-auto px-4">
 
           {menu.map((item) => {
@@ -172,7 +192,7 @@ console.log("CURRENT ROADMAP ID:", currentRoadmapId);
                   `group flex items-center justify-between rounded-2xl px-5 py-4 transition-all duration-300 ${
                     isActive
                       ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/20"
-                      : "text-slate-400 hover:bg-white/5 hover:text-white"
+                      : "text-[var(--mentra-text-muted)] hover:bg-black/5 hover:text-[var(--mentra-text)]"
                   }`
                 }
               >
@@ -198,24 +218,29 @@ console.log("CURRENT ROADMAP ID:", currentRoadmapId);
 
         </nav>
 
-        {/* User */}
-        <div className="border-t border-white/10 p-5">
+        {/* ============================= */}
+        {/* USER */}
+        {/* ============================= */}
 
-          <div className="rounded-3xl bg-white/5 p-4">
+        <div className="border-t border-[var(--mentra-border)] p-5">
+
+          <div className="rounded-3xl bg-black/5 p-4">
 
             <div className="flex items-center gap-4">
 
+              {/* Avatar */}
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 font-bold text-white">
                 {user?.firstName?.charAt(0) || "M"}
               </div>
 
+              {/* User information */}
               <div className="min-w-0">
 
-                <h3 className="truncate font-semibold text-white">
+                <h3 className="truncate font-semibold text-[var(--mentra-text)]">
                   {user?.firstName || "User"}
                 </h3>
 
-                <p className="truncate text-sm text-slate-400">
+                <p className="truncate text-sm text-[var(--mentra-text-muted)]">
                   {user?.primaryEmailAddress?.emailAddress}
                 </p>
 

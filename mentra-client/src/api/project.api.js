@@ -72,3 +72,23 @@ export async function deleteProject(token, id) {
 
   return response.data;
 }
+
+// -----------------------------------------
+// Search Projects
+// -----------------------------------------
+
+export async function searchProjects(token, query) {
+  const response = await axios.get(
+    `${API_URL}/search`,
+    {
+      params: {
+        q: query,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+}

@@ -1,4 +1,10 @@
-import { eq, and, desc } from "drizzle-orm";
+import {
+  eq,
+  and,
+  desc,
+  ilike,
+  or,
+} from "drizzle-orm";
 import { db } from "../db/index.js";
 import { projects } from "../db/schema/projects.js";
 
@@ -59,6 +65,38 @@ export async function getProjectService(userId, id) {
   }
 
   return project;
+}
+
+
+// -----------------------------------------
+// Search User Projects
+// -----------------------------------------
+
+export async function searchProjectsService(
+  userId,
+  search
+) {
+  const query = search.trim();
+
+  if (!query) {
+    return [];
+  }
+
+  const userProjects = await db
+    .select()
+    .from(projects)
+    .where(
+      and(
+        eq(projects.userId, userId),
+        or(
+          ilike(projects.title, `%${query}%`),
+          ilike(projects.description, `%${query}%`)
+        )
+      )
+    )
+    .orderBy(desc(projects.createdAt));
+
+  return userProjects;
 }
 
 

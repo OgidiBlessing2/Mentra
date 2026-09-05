@@ -1,5 +1,10 @@
-import { eq, asc } from "drizzle-orm";
-
+import {
+  eq,
+  asc,
+  and,
+  or,
+  ilike,
+} from "drizzle-orm";
 import { db } from "../db/index.js";
 
 import { roadmaps } from "../db/schema/roadmaps.js";
@@ -323,4 +328,36 @@ const roadmapModules = await db
   };
 
 
+}
+
+// -----------------------------------------
+// Search User Roadmaps
+// -----------------------------------------
+
+export async function searchRoadmapsService(
+  userId,
+  search
+) {
+  const query = search.trim();
+
+  if (!query) {
+    return [];
+  }
+
+  const userRoadmaps = await db
+    .select()
+    .from(roadmaps)
+    .where(
+      and(
+        eq(roadmaps.userId, userId),
+        or(
+          ilike(roadmaps.title, `%${query}%`),
+          ilike(roadmaps.career, `%${query}%`),
+          ilike(roadmaps.goal, `%${query}%`)
+        )
+      )
+    )
+    .orderBy(asc(roadmaps.title));
+
+  return userRoadmaps;
 }
