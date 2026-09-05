@@ -33,6 +33,7 @@ export default function ProjectTasks({ projectId }) {
   const [priority, setPriority] = useState("medium");
   const [dueDate, setDueDate] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [draggedTaskId, setDraggedTaskId] = useState(null);
 
   // -----------------------------------------
   // Edit task state
@@ -199,7 +200,51 @@ export default function ProjectTasks({ projectId }) {
     }
   }
 
-  // -----------------------------------------
+  async function handleDrop(targetTaskId) {
+  if (!draggedTaskId || draggedTaskId === targetTaskId) {
+    setDraggedTaskId(null);
+    return;
+  }
+
+  const currentTasks = [...tasks];
+
+  const draggedIndex = currentTasks.findIndex(
+    (task) => task.id === draggedTaskId
+  );
+
+  const targetIndex = currentTasks.findIndex(
+    (task) => task.id === targetTaskId
+  );
+
+  if (draggedIndex === -1 || targetIndex === -1) {
+    setDraggedTaskId(null);
+    return;
+  }
+
+  const [draggedTask] = currentTasks.splice(draggedIndex, 1);
+
+  currentTasks.splice(targetIndex, 0, draggedTask);
+
+  setDraggedTaskId(null);
+
+  try {
+    for (let index = 0; index < currentTasks.length; index++) {
+      await updateTask.mutateAsync({
+        taskId: currentTasks[index].id,
+        data: {
+          position: index,
+        },
+      });
+    }
+
+    console.log("✅ Task order saved");
+  } catch (error) {
+    console.error(
+      "❌ Failed to save task order:",
+      error?.response?.data || error
+    );
+  }
+}  // -----------------------------------------
   // Open create modal
   // -----------------------------------------
 
@@ -727,15 +772,43 @@ const maxAnalyticsValue = Math.max(
 
                 return (
                   <div
-                    key={task.id}
-                    className={`group rounded-2xl border p-5 transition ${
-                      isCompleted
-                        ? "border-emerald-500/20 bg-emerald-500/5"
-                        : "border-white/10 bg-[#18181B] hover:border-violet-500/30"
-                    }`}
-                  >
+  key={task.id}
+  draggable
+  onDragStart={(e) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", task.id);
+    setDraggedTaskId(task.id);
+  }}
+  onDragEnd={() => {
+    setDraggedTaskId(null);
+  }}
+  onDragOver={(e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  }}
+  onDrop={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleDrop(task.id);
+  }}
+  className={`group rounded-2xl border p-5 transition ${
+    isCompleted
+      ? "border-emerald-500/20 bg-emerald-500/5"
+      : "border-white/10 bg-[#18181B] hover:border-violet-500/30"
+  } ${
+    draggedTaskId === task.id
+      ? "scale-[0.98] opacity-50"
+      : ""
+  }`}
+>
 
                     <div className="flex items-start gap-4">
+                      <div
+  className="mt-1 cursor-grab select-none text-slate-600 transition hover:text-slate-300 active:cursor-grabbing"
+  title="Drag to reorder"
+>
+  ⋮⋮
+</div>
 
                       {/* Complete */}
                       <button

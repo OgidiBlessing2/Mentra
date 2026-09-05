@@ -64,22 +64,93 @@ export const useProjectTasks = (projectId) => {
 });
 
   const updateTask = useMutation({
-    mutationFn: async ({ taskId, data }) => {
-      const token = await getToken();
-      return updateProjectTask(
-        projectId,
-        taskId,
-        data,
-        token
-      );
-    },
+  mutationFn: async ({ taskId, data }) => {
+    const token = await getToken();
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["projectTasks", projectId],
-      });
-    },
-  });
+    return updateProjectTask(
+      projectId,
+      taskId,
+      data,
+      token
+    );
+  },
+
+  onMutate: async ({ taskId, data }) => {
+    await queryClient.cancelQueries({
+      queryKey: ["projectTasks", projectId],
+    });
+
+    const previousData = queryClient.getQueryData([
+      "projectTasks",
+      projectId,
+    ]);
+
+    queryClient.setQueryData(
+      ["projectTasks", projectId],
+      (oldData) => {
+        if (!oldData) {
+          return oldData;
+        }
+
+        return {
+          ...oldData,
+          tasks: (oldData.tasks || []).map((task) =>
+            task.id === taskId
+              ? {
+                  ...task,
+                  ...data,
+                }
+              : task
+          ),
+        };
+      }
+    );
+
+    return { previousData };
+  },
+
+  onError: (error, variables, context) => {
+    console.error(
+      "❌ UPDATE TASK ERROR:",
+      error?.response?.data || error
+    );
+
+    if (context?.previousData) {
+      queryClient.setQueryData(
+        ["projectTasks", projectId],
+        context.previousData
+      );
+    }
+  },
+
+  onSuccess: (data) => {
+    console.log("✅ UPDATE SUCCESS:", data);
+
+    queryClient.setQueryData(
+      ["projectTasks", projectId],
+      (oldData) => {
+        if (!oldData) {
+          return oldData;
+        }
+
+        return {
+          ...oldData,
+          tasks: (oldData.tasks || []).map((task) =>
+            task.id === data.task.id
+              ? data.task
+              : task
+          ),
+        };
+      }
+    );
+  },
+
+  onSettled: () => {
+    queryClient.invalidateQueries({
+      queryKey: ["projectTasks", projectId],
+    });
+  },
+});
 
   const deleteTask = useMutation({
     mutationFn: async (taskId) => {
