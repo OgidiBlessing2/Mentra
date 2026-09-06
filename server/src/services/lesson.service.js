@@ -126,14 +126,13 @@ export async function completeLessonService(id, userId) {
     // -----------------------------------------
     // Mark current lesson completed
     // -----------------------------------------
-
-    await tx
-      .update(lessons)
-      .set({
-        status: "completed",
-      })
-      .where(eq(lessons.id, id));
-
+await tx
+  .update(lessons)
+  .set({
+    status: "completed",
+    completedAt: new Date(),
+  })
+  .where(eq(lessons.id, id));
     // -----------------------------------------
     // Find next lesson in same module
     // -----------------------------------------

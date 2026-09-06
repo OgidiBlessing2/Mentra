@@ -16,7 +16,7 @@ import projectRoutes from "./routes/project.routes.js";
 import projectTaskRoutes from "./routes/projectTask.routes.js";
 import flashcardRoutes from "./routes/flashcard.routes.js";
 import quizRoutes from "./routes/quiz.route.js";
-
+import globalMentorRoutes from "./routes/globalMentor.routes.js"
 import { clerkMiddleware } from "@clerk/express";
 // import { startJobs } from "./jobs/index.js";
 
@@ -82,6 +82,7 @@ app.use("/api/flashcards", flashcardRoutes);
 
 app.use("/api/projects", projectRoutes);
 
+app.use( "/api/ai-mentor", globalMentorRoutes );
 /*
 |--------------------------------------------------------------------------
 | PROJECT TASK ROUTES

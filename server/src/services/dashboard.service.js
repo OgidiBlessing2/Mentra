@@ -1,12 +1,20 @@
+import {
+  eq,
+  and,
+  count,
+  inArray,
+  gte,
+  lt,
+  desc,
+} from "drizzle-orm";
 
-import { eq, and, count, inArray } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { users } from "../db/schema/users.js";
 import { roadmaps } from "../db/schema/roadmaps.js";
 import { modules } from "../db/schema/modules.js";
 import { lessons } from "../db/schema/lesson.js";
-import { quizResults } from "../db/schema/quizResults.js";
 import { quizAttempts } from "../db/schema/quizAttempts.js";
+
 export async function getDashboardService(userId) {
   // -----------------------------------------
   // Find user's roadmap
@@ -18,17 +26,21 @@ export async function getDashboardService(userId) {
     .where(eq(roadmaps.userId, userId))
     .limit(1);
 
-    // -----------------------------------------
-// Get user stats
-// -----------------------------------------
+  // -----------------------------------------
+  // Get user stats
+  // -----------------------------------------
 
-const [user] = await db
-  .select({
-    streak: users.streak,
-  })
-  .from(users)
-  .where(eq(users.id, userId))
-  .limit(1);
+  const [user] = await db
+    .select({
+      streak: users.streak,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  // -----------------------------------------
+  // No roadmap
+  // -----------------------------------------
 
   if (!roadmap) {
     return {
@@ -42,6 +54,14 @@ const [user] = await db
         streak: 0,
         progress: 0,
       },
+
+      today: {
+        completedLessons: 0,
+        goal: 2,
+        progress: 0,
+      },
+
+      recentActivity: [],
     };
   }
 
@@ -85,7 +105,10 @@ const [user] = await db
       );
   }
 
-  // Sort lessons by module order then lesson order
+  // -----------------------------------------
+  // Sort lessons
+  // -----------------------------------------
+
   roadmapLessons.sort((a, b) => {
     const moduleA = roadmapModules.find(
       (module) => module.id === a.moduleId
@@ -109,74 +132,212 @@ const [user] = await db
   });
 
   // -----------------------------------------
-  // Total / completed lessons
+  // Total completed lessons
   // -----------------------------------------
 
   const [{ completedLessons }] = await db
-  .select({
-    completedLessons: count(),
-  })
-  .from(lessons)
-  .innerJoin(
-    modules,
-    eq(lessons.moduleId, modules.id)
-  )
-  .where(
-    and(
-      eq(modules.roadmapId, roadmap.id),
-      eq(lessons.status, "completed")
+    .select({
+      completedLessons: count(),
+    })
+    .from(lessons)
+    .innerJoin(
+      modules,
+      eq(lessons.moduleId, modules.id)
     )
-  );
+    .where(
+      and(
+        eq(modules.roadmapId, roadmap.id),
+        eq(lessons.status, "completed")
+      )
+    );
 
-const [{ totalLessons }] = await db
-  .select({
-    totalLessons: count(),
-  })
-  .from(lessons)
-  .innerJoin(
-    modules,
-    eq(lessons.moduleId, modules.id)
-  )
-  .where(eq(modules.roadmapId, roadmap.id));
+  // -----------------------------------------
+  // Total lessons
+  // -----------------------------------------
 
-
-
+  const [{ totalLessons }] = await db
+    .select({
+      totalLessons: count(),
+    })
+    .from(lessons)
+    .innerJoin(
+      modules,
+      eq(lessons.moduleId, modules.id)
+    )
+    .where(
+      eq(modules.roadmapId, roadmap.id)
+    );
 
   // -----------------------------------------
   // Overall roadmap progress
   // -----------------------------------------
 
- // -----------------------------------------
-// Overall roadmap progress
-// -----------------------------------------
-
-const progress =
-  totalLessons > 0
-    ? Math.round(
-        (completedLessons / totalLessons) * 100
-      )
-    : 0;
-
-// -----------------------------------------
-// Completed quizzes
-// -----------------------------------------
-console.log("📊 Counting quiz attempts for:", userId);
-
-const [{ completedQuizzes }] = await db
-  .select({
-    completedQuizzes: count(),
-  })
-  .from(quizAttempts)
-  .where(eq(quizAttempts.userId, userId));
-
-console.log("✅ Quiz attempts count:", completedQuizzes);
-
-// -----------------------------------------
-// Current lesson
-// -----------------------------------------
+  const progress =
+    totalLessons > 0
+      ? Math.round(
+          (Number(completedLessons) /
+            Number(totalLessons)) *
+            100
+        )
+      : 0;
 
   // -----------------------------------------
-  // Current lesson
+  // Completed quizzes
+  // -----------------------------------------
+
+  const [{ completedQuizzes }] = await db
+    .select({
+      completedQuizzes: count(),
+    })
+    .from(quizAttempts)
+    .where(
+      eq(
+        quizAttempts.userId,
+        userId
+      )
+    );
+
+  // -----------------------------------------
+  // Today's learning goal
+  // -----------------------------------------
+
+  const now = new Date();
+
+  const startOfDay = new Date(now);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const startOfTomorrow = new Date(
+    startOfDay
+  );
+
+  startOfTomorrow.setDate(
+    startOfTomorrow.getDate() + 1
+  );
+
+  const [
+    { completedToday },
+  ] = await db
+    .select({
+      completedToday: count(),
+    })
+    .from(lessons)
+    .innerJoin(
+      modules,
+      eq(lessons.moduleId, modules.id)
+    )
+    .where(
+      and(
+        eq(
+          modules.roadmapId,
+          roadmap.id
+        ),
+        eq(
+          lessons.status,
+          "completed"
+        ),
+        gte(
+          lessons.completedAt,
+          startOfDay
+        ),
+        lt(
+          lessons.completedAt,
+          startOfTomorrow
+        )
+      )
+    );
+
+  const dailyGoal = 2;
+
+  const todayProgress =
+    dailyGoal > 0
+      ? Math.min(
+          Math.round(
+            (Number(completedToday) /
+              dailyGoal) *
+              100
+          ),
+          100
+        )
+      : 0;
+
+  // -----------------------------------------
+  // Recent completed lessons
+  // -----------------------------------------
+
+  const recentCompletedLessons =
+    await db
+      .select({
+        id: lessons.id,
+        title: lessons.title,
+        completedAt:
+          lessons.completedAt,
+        moduleTitle:
+          modules.title,
+      })
+      .from(lessons)
+      .innerJoin(
+        modules,
+        eq(
+          lessons.moduleId,
+          modules.id
+        )
+      )
+      .where(
+        and(
+          eq(
+            modules.roadmapId,
+            roadmap.id
+          ),
+          eq(
+            lessons.status,
+            "completed"
+          )
+        )
+      )
+      .orderBy(
+        desc(lessons.completedAt)
+      )
+      .limit(5);
+
+  // -----------------------------------------
+  // Build recent activity
+  // -----------------------------------------
+
+  const recentActivity =
+    recentCompletedLessons.map(
+      (lesson) => ({
+        id: `lesson-${lesson.id}`,
+        text: `Completed ${lesson.title}`,
+        type: "lesson",
+        time: lesson.completedAt,
+      })
+    );
+
+  // Add roadmap creation activity
+  if (roadmap.createdAt) {
+    recentActivity.push({
+      id: `roadmap-${roadmap.id}`,
+      text: "Generated AI Roadmap",
+      type: "ai",
+      time: roadmap.createdAt,
+    });
+  }
+
+  // -----------------------------------------
+  // Sort all activity by newest
+  // -----------------------------------------
+
+  recentActivity.sort(
+    (a, b) =>
+      new Date(b.time) -
+      new Date(a.time)
+  );
+
+  const latestActivity =
+    recentActivity.slice(0, 5);
+
+  // -----------------------------------------
+  // Find current lesson
   // -----------------------------------------
 
   let currentLesson = null;
@@ -199,7 +360,8 @@ console.log("✅ Quiz attempts count:", completedQuizzes);
     const lessonIndex =
       roadmapLessons.findIndex(
         (lesson) =>
-          lesson.id === currentLesson.id
+          lesson.id ===
+          currentLesson.id
       );
 
     const lessonNumber =
@@ -211,21 +373,26 @@ console.log("✅ Quiz attempts count:", completedQuizzes);
       ...currentLesson,
 
       module:
-        currentModule?.title ?? null,
+        currentModule?.title ??
+        null,
 
       lessonNumber,
 
       totalLessons,
 
       duration:
-        currentLesson.estimatedMinutes ?? 0,
+        currentLesson.estimatedMinutes ??
+        0,
 
-      // Progress before this lesson
       progress:
         totalLessons > 0
           ? Math.round(
-              (completedLessons /
-                totalLessons) *
+              (Number(
+                completedLessons
+              ) /
+                Number(
+                  totalLessons
+                )) *
                 100
             )
           : 0,
@@ -236,19 +403,29 @@ console.log("✅ Quiz attempts count:", completedQuizzes);
   // Return dashboard
   // -----------------------------------------
 
-
-
   return {
-  currentRoadmap: roadmap,
+    currentRoadmap: roadmap,
 
-  currentLesson,
+    currentLesson,
 
-  stats: {
-    completedLessons,
-    totalLessons,
-    completedQuizzes,
-    streak: user?.streak ?? 0,
-    progress,
-  },
-};
+    stats: {
+      completedLessons,
+      totalLessons,
+      completedQuizzes,
+      streak: user?.streak ?? 0,
+      progress,
+    },
+
+    today: {
+      completedLessons:
+        Number(completedToday),
+
+      goal: dailyGoal,
+
+      progress: todayProgress,
+    },
+
+    recentActivity:
+      latestActivity,
+  };
 }

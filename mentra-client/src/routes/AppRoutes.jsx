@@ -13,6 +13,7 @@ import Bookmarks from "../pages/Bookmarks/Bookmarks";
 import Flashcards from "../pages/FlashCards/Flashcard";
 import Roadmap from "../pages/Roadmap/Roadmap";
 import Settings from "../pages/Settings/Settings";
+import Mentor from "../pages/Mentor/Mentor";
 // Auth
 import SignInPage from "../pages/Auth/SignInPage";
 import SignUpPage from "../pages/Auth/SignUpPage";
@@ -189,6 +190,11 @@ export default function AppRoutes() {
           </>
         }
       />
+
+      <Route
+  path="/mentor"
+  element={<Mentor />}
+/>
 
 
       {/* ================= PROJECTS ================= */}
