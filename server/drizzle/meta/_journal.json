@@ -43,6 +43,55 @@
       "when": 1785553749858,
       "tag": "0005_optimal_namorita",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785931073578,
+      "tag": "0006_fair_prodigy",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786109704570,
+      "tag": "0007_productive_sabretooth",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786193247912,
+      "tag": "0008_shiny_sunspot",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786198381892,
+      "tag": "0009_pale_doomsday",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786220578307,
+      "tag": "0010_magenta_unus",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1786223560976,
+      "tag": "0011_clear_gamora",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1787528462768,
+      "tag": "0012_misty_king_bedlam",
+      "breakpoints": true
     }
   ]
 }

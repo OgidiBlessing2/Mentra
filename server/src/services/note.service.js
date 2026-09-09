@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { notes } from "../db/schema/note.js";
 
@@ -8,7 +8,7 @@ export async function createNoteService(userId, data) {
     .insert(notes)
     .values({
       userId,
-      lessonId: data.lessonId,
+      lessonId: data.lessonId || null,
       title: data.title,
       content: data.content,
     })
@@ -26,11 +26,38 @@ export async function getNotesService(userId) {
 }
 
 // Get One Note
-export async function getNoteService(id) {
+export async function getNoteService(id, userId) {
   const [note] = await db
     .select()
     .from(notes)
-    .where(eq(notes.id, id));
+    .where(
+      and(
+        eq(notes.id, id),
+        eq(notes.userId, userId)
+      )
+    );
+
+  if (!note) {
+    throw new Error("Note not found");
+  }
+
+  return note;
+}
+export async function updateNoteService(userId, id, data) {
+  const [note] = await db
+    .update(notes)
+    .set({
+      title: data.title,
+      content: data.content,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(notes.id, id),
+        eq(notes.userId, userId)
+      )
+    )
+    .returning();
 
   if (!note) {
     throw new Error("Note not found");
@@ -39,26 +66,20 @@ export async function getNoteService(id) {
   return note;
 }
 
-// Update Note
-export async function updateNoteService(id, data) {
-  const [note] = await db
-    .update(notes)
-    .set({
-      title: data.title,
-      content: data.content,
-      updatedAt: new Date(),
-    })
-    .where(eq(notes.id, id))
+export async function deleteNoteService(id, userId) {
+  const [deletedNote] = await db
+    .delete(notes)
+    .where(
+      and(
+        eq(notes.id, id),
+        eq(notes.userId, userId)
+      )
+    )
     .returning();
 
-  return note;
-}
-
-// Delete Note
-export async function deleteNoteService(id) {
-  await db
-    .delete(notes)
-    .where(eq(notes.id, id));
+  if (!deletedNote) {
+    throw new Error("Note not found or you don't own this note");
+  }
 
   return {
     message: "Note deleted successfully",

@@ -31,6 +31,8 @@ export const users = pgTable("users", {
   level: integer("level").default(1),
 
   streak: integer("streak").default(0),
+  
+  lastActiveAt: timestamp("last_active_at"),
 
   createdAt: timestamp("created_at").defaultNow(),
 

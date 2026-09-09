@@ -1,8 +1,14 @@
 import { Router } from "express";
-import { completeLesson } from "../controllers/lesson.controller.js";
-
+import {
+  getLesson,
+  completeLesson,
+  getCurrentLesson,
+} from "../controllers/lesson.controller.js";
+import { protect } from "../middlewares/auth.middleware.js";
 const router = Router();
 
-router.patch("/:id/complete", completeLesson);
+router.get("/current", protect, getCurrentLesson);
+router.get("/:id", protect, getLesson);
+router.patch("/:id/complete", protect, completeLesson);
 
 export default router;

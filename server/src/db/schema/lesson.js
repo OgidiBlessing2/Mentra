@@ -36,4 +36,6 @@ export const lessons = pgTable("lessons", {
   }).default("locked"),
 
   createdAt: timestamp("created_at").defaultNow(),
+
+  completedAt: timestamp("completed_at"),
 });
