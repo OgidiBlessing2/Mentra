@@ -1,8 +1,9 @@
 import axios from "axios";
+import { API_URL } from "./config";
 
 export async function getAchievements(token) {
   const response = await axios.get(
-    "http://localhost:5000/api/achievements",
+    `${API_URL}/achievements`,
     {
       headers: {
         Authorization: `Bearer ${token}`,

@@ -36,9 +36,6 @@ export async function generateText(prompt) {
 // -----------------------------------------
 // Generate AI image with Magic Hour
 // -----------------------------------------
-// -----------------------------------------
-// Generate AI image with Magic Hour
-// -----------------------------------------
 
 export async function generateImage(prompt) {
   if (!prompt || !prompt.trim()) {
@@ -53,10 +50,7 @@ export async function generateImage(prompt) {
 
   console.log("🎨 Generating image with Magic Hour...");
 
-  // -----------------------------------------
-  // 1. Start image generation
-  // -----------------------------------------
-
+  // Start image generation
   const createResponse = await fetch(
     "https://api.magichour.ai/v1/ai-image-generator",
     {
@@ -108,10 +102,7 @@ export async function generateImage(prompt) {
     );
   }
 
-  // -----------------------------------------
-  // 2. Poll for completed image
-  // -----------------------------------------
-
+  // Poll for completion
   const maxAttempts = 30;
   const pollDelay = 2000;
 
@@ -152,7 +143,7 @@ export async function generateImage(prompt) {
     }
 
     // -----------------------------------------
-    // Image is ready
+    // Completed
     // -----------------------------------------
 
     if (statusData.status === "complete") {
@@ -169,14 +160,7 @@ export async function generateImage(prompt) {
         "🎨 Magic Hour image completed!"
       );
 
-      console.log(
-        "🎨 Downloading generated image..."
-      );
-
-      // -----------------------------------------
-      // 3. Download generated image
-      // -----------------------------------------
-
+      // Download image
       const imageResponse = await fetch(imageUrl);
 
       if (!imageResponse.ok) {
@@ -198,33 +182,27 @@ export async function generateImage(prompt) {
     }
 
     // -----------------------------------------
-    // Generation failed
+    // Failed
     // -----------------------------------------
 
-    if (statusData.status === "error") {
+    if (
+      statusData.status === "error" ||
+      statusData.status === "failed"
+    ) {
       console.error(
         "MAGIC HOUR IMAGE GENERATION FAILED:",
-        statusData.error
+        statusData
       );
 
       throw new Error(
         statusData?.error?.message ||
+          statusData?.message ||
           "Magic Hour failed to generate the image."
       );
     }
 
     // -----------------------------------------
-    // Generation cancelled
-    // -----------------------------------------
-
-    if (statusData.status === "canceled") {
-      throw new Error(
-        "Magic Hour image generation was canceled."
-      );
-    }
-
-    // -----------------------------------------
-    // Still rendering
+    // Wait before checking again
     // -----------------------------------------
 
     await new Promise((resolve) =>

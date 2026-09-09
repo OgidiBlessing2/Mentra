@@ -21,8 +21,19 @@ export async function chatWithGlobalMentorController(
       });
     }
 
-    const result =
-      await chatWithGlobalMentor(message);
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authenticated user not found.",
+      });
+    }
+
+    const result = await chatWithGlobalMentor(
+      message,
+      userId
+    );
 
     return res.status(200).json({
       success: true,

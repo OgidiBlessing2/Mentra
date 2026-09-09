@@ -3,30 +3,131 @@ import {
   generateImage,
 } from "./ai.service.js";
 
-export async function chatWithGlobalMentor(message) {
+import { getDashboardService } from "./dashboard.service.js";
+
+// -----------------------------------------
+// AI Mentor Chat
+// -----------------------------------------
+
+export async function chatWithGlobalMentor(
+  message,
+  userId
+) {
   if (!message || !message.trim()) {
     throw new Error("Message is required");
   }
+
+  if (!userId) {
+    throw new Error("User ID is required");
+  }
+
+  // -----------------------------------------
+  // Get student's learning context
+  // -----------------------------------------
+
+  const dashboard =
+    await getDashboardService(userId);
+
+  const currentLesson =
+    dashboard?.currentLesson;
+
+  const stats =
+    dashboard?.stats || {};
+
+  const today =
+    dashboard?.today || {};
+
+  const roadmap =
+    dashboard?.currentRoadmap;
+
+  // -----------------------------------------
+  // Build safe AI context
+  // -----------------------------------------
+
+  const learningContext = {
+    roadmapTitle:
+      roadmap?.title || "No active roadmap",
+
+    currentModule:
+      currentLesson?.module || "No current module",
+
+    currentLesson:
+      currentLesson?.title || "No current lesson",
+
+    currentLessonNumber:
+      currentLesson?.lessonNumber ?? null,
+
+    totalLessons:
+      currentLesson?.totalLessons ??
+      stats?.totalLessons ??
+      0,
+
+    overallProgress:
+      stats?.progress ?? 0,
+
+    completedLessons:
+      stats?.completedLessons ?? 0,
+
+    completedQuizzes:
+      stats?.completedQuizzes ?? 0,
+
+    streak:
+      stats?.streak ?? 0,
+
+    todayLessonsCompleted:
+      today?.completedLessons ?? 0,
+
+    todayGoal:
+      today?.goal ?? 2,
+
+    todayProgress:
+      today?.progress ?? 0,
+  };
+
+  // -----------------------------------------
+  // AI prompt
+  // -----------------------------------------
 
   const prompt = `
 You are Mentra AI Mentor, a friendly and intelligent personal learning assistant.
 
 Your job is to help students learn difficult topics clearly and effectively.
 
-Guidelines:
+You have access to the student's current Mentra learning context.
+
+IMPORTANT:
+- Use the learning context to personalize your response.
+- Never reveal private database information.
+- Never claim the student has learned something unless the context supports it.
+- Do not mention database fields, APIs, internal systems, or technical implementation details.
+- If there is no current lesson, simply answer normally.
+- Do not force the current lesson into unrelated questions.
+- If the student asks about their progress, use the provided progress information.
+- If the student asks what they should study next, prioritize their current lesson.
+- If the student asks for help with their current lesson, tailor the explanation to that lesson.
+- If the student is struggling, explain the concept in simpler steps.
+- Encourage the student without being overly verbose.
+
+Teaching guidelines:
 - Explain concepts in simple language.
 - Break difficult topics into smaller steps.
 - Give practical examples when useful.
 - Help with programming and technical questions.
 - When explaining code, use clear JavaScript examples when appropriate.
-- Encourage the student without being overly verbose.
-- If the student asks for a quiz, create useful questions and wait for their answers.
 - If the student asks for a study plan, create a realistic structured plan.
-- Never pretend to know information about the student's Mentra account that was not provided.
 - If a question is unclear, ask a short clarification question.
 - Prioritize teaching and understanding rather than simply giving answers.
 
-Student's message:
+STUDENT LEARNING CONTEXT:
+
+${JSON.stringify(
+  learningContext,
+  null,
+  2
+)}
+
+STUDENT'S MESSAGE:
+
 ${message.trim()}
 
 Respond as the student's personal AI Mentor.

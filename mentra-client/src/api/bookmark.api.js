@@ -1,10 +1,8 @@
-import axios from "axios";
+import api from "./axios.js";
 
-const API_URL = "http://localhost:5000/api/bookmarks";
-
-// 🔖 Get all bookmarks
+//  🔖 Get all bookmarks
 export async function getBookmarks(token) {
-  const response = await axios.get(API_URL, {
+  const response = await api.get("/bookmarks", {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -14,12 +12,9 @@ export async function getBookmarks(token) {
 }
 
 // ➕ Create bookmark
-export async function createBookmark(
-  token,
-  lessonId
-) {
-  const response = await axios.post(
-    API_URL,
+export async function createBookmark(token, lessonId) {
+  const response = await api.post(
+    "/bookmarks",
     { lessonId },
     {
       headers: {
@@ -32,12 +27,9 @@ export async function createBookmark(
 }
 
 // ❌ Delete bookmark
-export async function deleteBookmark(
-  token,
-  lessonId
-) {
-  const response = await axios.delete(
-    `${API_URL}/${lessonId}`,
+export async function deleteBookmark(token, lessonId) {
+  const response = await api.delete(
+    `/bookmarks/${lessonId}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
