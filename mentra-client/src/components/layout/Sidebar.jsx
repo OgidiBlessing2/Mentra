@@ -1,3 +1,4 @@
+
 import {
   LayoutDashboard,
   Route,
@@ -11,6 +12,7 @@ import {
   ChevronRight,
   StickyNote,
   X,
+  FlaskConical,
 } from "lucide-react";
 
 import { useUser } from "@clerk/clerk-react";
@@ -65,6 +67,7 @@ export default function Sidebar({
       name: "AI Mentor",
       icon: MessageSquare,
       path: "/mentor",
+      beta: true,
     },
     {
       name: "Projects",
@@ -117,7 +120,6 @@ export default function Sidebar({
           }
         `}
       >
-
         {/* ============================= */}
         {/* MOBILE CLOSE */}
         {/* ============================= */}
@@ -138,9 +140,7 @@ export default function Sidebar({
         {/* ============================= */}
 
         <div className="flex items-center justify-between px-6 pb-8 pt-4 lg:px-8 lg:pb-10 lg:pt-8">
-
           <div className="flex items-center gap-3">
-
             {/* Logo */}
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 shadow-lg shadow-violet-500/20">
               <Sparkles
@@ -159,7 +159,6 @@ export default function Sidebar({
                 Learn Smarter
               </p>
             </div>
-
           </div>
 
           {/* Mobile close */}
@@ -171,7 +170,6 @@ export default function Sidebar({
           >
             <X size={22} />
           </button>
-
         </div>
 
         {/* ============================= */}
@@ -179,7 +177,6 @@ export default function Sidebar({
         {/* ============================= */}
 
         <nav className="flex-1 space-y-2 overflow-y-auto px-4">
-
           {menu.map((item) => {
             const Icon = item.icon;
 
@@ -196,26 +193,32 @@ export default function Sidebar({
                   }`
                 }
               >
-
-                <div className="flex items-center gap-4">
-
+                <div className="flex min-w-0 items-center gap-4">
                   <Icon size={20} />
 
                   <span className="font-medium">
                     {item.name}
                   </span>
 
+                  {/* BETA BADGE */}
+                  {item.beta && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-violet-400/20 bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-400"
+                      title="AI Mentor is currently in beta"
+                    >
+                      <FlaskConical size={9} />
+                      Beta
+                    </span>
+                  )}
                 </div>
 
                 <ChevronRight
                   size={18}
                   className="opacity-0 transition group-hover:opacity-100"
                 />
-
               </NavLink>
             );
           })}
-
         </nav>
 
         {/* ============================= */}
@@ -223,11 +226,8 @@ export default function Sidebar({
         {/* ============================= */}
 
         <div className="border-t border-[var(--mentra-border)] p-5">
-
           <div className="rounded-3xl bg-black/5 p-4">
-
             <div className="flex items-center gap-4">
-
               {/* Avatar */}
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 font-bold text-white">
                 {user?.firstName?.charAt(0) || "M"}
@@ -235,7 +235,6 @@ export default function Sidebar({
 
               {/* User information */}
               <div className="min-w-0">
-
                 <h3 className="truncate font-semibold text-[var(--mentra-text)]">
                   {user?.firstName || "User"}
                 </h3>
@@ -243,15 +242,10 @@ export default function Sidebar({
                 <p className="truncate text-sm text-[var(--mentra-text-muted)]">
                   {user?.primaryEmailAddress?.emailAddress}
                 </p>
-
               </div>
-
             </div>
-
           </div>
-
         </div>
-
       </aside>
     </>
   );

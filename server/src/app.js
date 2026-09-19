@@ -46,6 +46,17 @@ app.use(
 
 app.use(express.json());
 
+app.use((req, res, next) => {
+  console.log("🪪 AUTH HEADER CHECK:", {
+    exists: !!req.headers.authorization,
+    format: req.headers.authorization
+      ? req.headers.authorization.slice(0, 25) + "..."
+      : "NONE",
+  });
+
+  next();
+});
+
 app.use(clerkMiddleware());
 
 /* =========================

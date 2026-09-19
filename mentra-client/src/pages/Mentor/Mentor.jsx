@@ -1,1370 +1,1439 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-Sparkles,
-Send,
-Bot,
-User,
-BookOpen,
-Brain,
-Lightbulb,
-Code2,
-Trash2,
-CheckCircle2,
-XCircle,
-Trophy,
-ArrowRight,
-RotateCcw,
-Loader2,
-ImageIcon,
-MessageSquare,
-Wand2,
-GraduationCap,
-Zap,
-Flame,
-Target,
-ChevronLeft,
+  Sparkles,
+  Send,
+  Bot,
+  User,
+  BookOpen,
+  Brain,
+  Lightbulb,
+  Code2,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  Trophy,
+  ArrowRight,
+  RotateCcw,
+  Loader2,
+  ImageIcon,
+  MessageSquare,
+  Wand2,
+  GraduationCap,
+  Zap,
+  Flame,
+  Target,
+  ChevronLeft,
 } from "lucide-react";
+
 import { useAuth } from "@clerk/clerk-react";
+
 import DashboardLayout from "../../layout/DashboardLayout";
+
 import {
-sendMentorMessage,
-generateMentorImage,
+  sendMentorMessage,
+  generateMentorImage,
 } from "../../api/global-mentor.api";
-import { generateQuiz, submitQuiz } from "../../api/quiz.api";
+
+import {
+  generateQuiz,
+  submitQuiz,
+} from "../../api/quiz.api";
+
 import { getCurrentLesson } from "../../api/lesson.api";
 
-const quickPrompts = [
-{
-label: "Explain a concept",
-description: "Turn something difficult into something simple.",
-prompt: "Explain a difficult concept to me in a simple way.",
-icon: Lightbulb,
-},
-{
-label: "Help with coding",
-description: "Understand code, errors, and programming ideas.",
-prompt: "Help me understand a programming problem.",
-icon: Code2,
-},
-{
-label: "Quiz me",
-description: "Test what I know from my current lesson.",
-icon: Brain,
-action: "quiz",
-},
-{
-label: "Study plan",
-description: "Build a focused plan around my learning goals.",
-prompt:
-"Help me create a study plan for my current learning goals.",
-icon: BookOpen,
-},
+/* =========================================================
+   QUICK PROMPTS
+========================================================= */
+
+const QUICK_PROMPTS = [
+  {
+    icon: Lightbulb,
+    title: "Explain a concept",
+    prompt: "Explain a difficult programming concept to me in simple terms.",
+  },
+  {
+    icon: Code2,
+    title: "Help with coding",
+    prompt: "Help me understand how to solve a coding problem.",
+  },
+  {
+    icon: Brain,
+    title: "Quiz me",
+    prompt: "Quiz me on what I am currently learning.",
+  },
+  {
+    icon: BookOpen,
+    title: "Study plan",
+    prompt: "Create a simple study plan for me.",
+  },
 ];
 
-const modes = [
-{ id: "chat", label: "Chat", icon: MessageSquare },
-{ id: "visual", label: "Visual", icon: ImageIcon },
-{ id: "quiz", label: "Quiz", icon: Brain },
+/* =========================================================
+   MODES
+========================================================= */
+
+const MODES = [
+  {
+    id: "chat",
+    label: "Chat",
+    icon: MessageSquare,
+  },
+  {
+    id: "visual",
+    label: "Visual",
+    icon: ImageIcon,
+  },
+  {
+    id: "quiz",
+    label: "Quiz",
+    icon: GraduationCap,
+  },
 ];
 
-function getErrorMessage(error, fallback) {
-return (
-error?.response?.data?.message ||
-error?.response?.data?.error ||
-error?.message ||
-fallback
-);
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function getApiError(error) {
+  return (
+    error?.response?.data?.message ||
+    error?.response?.data?.error ||
+    error?.message ||
+    "Something went wrong. Please try again."
+  );
 }
 
 function getLessonFromResponse(response) {
-return (
-response?.lesson ||
-response?.data?.lesson ||
-response?.data ||
-response
-);
+  return (
+    response?.lesson ||
+    response?.data?.lesson ||
+    response?.data ||
+    response
+  );
 }
 
 function getQuizFromResponse(response) {
-return (
-response?.quiz ||
-response?.data?.quiz ||
-response?.data ||
-response
-);
+  return (
+    response?.quiz ||
+    response?.data?.quiz ||
+    response?.data ||
+    response
+  );
 }
 
-/*
-
-* QUIZ CONTRACT
-*
-* Backend questions:
-*
-* {
-* id,
-* question,
-* optionA,
-* optionB,
-* optionC,
-* optionD,
-* correctAnswer
-* }
-*
-* Answers submitted to backend are NUMBER values 1-4.
-  */
-  function getQuizOptions(question) {
+function getQuizOptions(question) {
   if (!question) return [];
 
-const directOptions = [
-question.optionA,
-question.optionB,
-question.optionC,
-question.optionD,
-];
+  if (
+    question.optionA !== undefined ||
+    question.optionB !== undefined ||
+    question.optionC !== undefined ||
+    question.optionD !== undefined
+  ) {
+    return [
+      question.optionA,
+      question.optionB,
+      question.optionC,
+      question.optionD,
+    ].filter(
+      (option) =>
+        option !== undefined &&
+        option !== null &&
+        String(option).trim() !== ""
+    );
+  }
 
-if (
-directOptions.some(
-(value) => value !== undefined && value !== null
-)
-) {
-return directOptions
-.map((text, index) => ({
-number: index + 1,
-letter: String.fromCharCode(65 + index),
-text: text == null ? "" : String(text),
-}))
-.filter((option) => option.text.trim().length > 0);
-}
+  if (Array.isArray(question.options)) {
+    return question.options.map((option) => {
+      if (
+        typeof option === "object" &&
+        option !== null
+      ) {
+        return (
+          option.text ||
+          option.label ||
+          option.value ||
+          ""
+        );
+      }
 
-const raw =
-question.options ??
-question.answers ??
-question.choices ??
-question.answerOptions;
+      return option;
+    });
+  }
 
-if (Array.isArray(raw)) {
-return raw
-.map((item, index) => {
-if (typeof item === "string") {
-return {
-number: index + 1,
-letter: String.fromCharCode(65 + index),
-text: item,
-};
-}
-
-
-    const text =
-      item?.text ??
-      item?.label ??
-      item?.value ??
-      item?.answer ??
-      "";
-
-    return {
-      number: index + 1,
-      letter: String.fromCharCode(65 + index),
-      text: String(text),
-    };
-  })
-  .filter((option) => option.text.trim().length > 0);
-
-
-}
-
-if (raw && typeof raw === "object") {
-return Object.entries(raw)
-.slice(0, 4)
-.map(([key, value], index) => ({
-number: index + 1,
-letter:
-key.length === 1
-? key.toUpperCase()
-: String.fromCharCode(65 + index),
-text:
-typeof value === "object"
-? String(
-value?.text ??
-value?.label ??
-value?.value ??
-""
-)
-: String(value ?? ""),
-}))
-.filter((option) => option.text.trim().length > 0);
-}
-
-return [];
+  return [];
 }
 
 function normalizeQuestions(questions) {
-if (!Array.isArray(questions)) return [];
+  if (!Array.isArray(questions)) return [];
 
-return questions.map((question, index) => ({
-...question,
-id:
-question?.id ??
-question?.questionId ??
-`question-${index + 1}`,
-question:
-question?.question ??
-question?.text ??
-question?.questionText ??
-`Question ${index + 1}`,
-}));
+  return questions.map((question, index) => ({
+    ...question,
+    id:
+      question.id ||
+      question.questionId ||
+      `question-${index + 1}`,
+    question:
+      question.question ||
+      question.text ||
+      question.prompt ||
+      `Question ${index + 1}`,
+    options: getQuizOptions(question),
+  }));
 }
+
+/* =========================================================
+   MENTOR
+========================================================= */
 
 export default function Mentor() {
-const { getToken } = useAuth();
+  const {
+    isLoaded,
+    isSignedIn,
+    getToken,
+  } = useAuth();
 
-const [messages, setMessages] = useState([]);
-const [input, setInput] = useState("");
-const [isTyping, setIsTyping] = useState(false);
-const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-const [activeMode, setActiveMode] = useState("chat");
+  const [authReady, setAuthReady] = useState(false);
+  const [authToken, setAuthToken] = useState(null);
 
-const [quizMode, setQuizMode] = useState(false);
-const [quizLoading, setQuizLoading] = useState(false);
-const [quizError, setQuizError] = useState("");
-const [quiz, setQuiz] = useState(null);
-const [currentQuestionIndex, setCurrentQuestionIndex] =
-useState(0);
-const [answers, setAnswers] = useState([]);
-const [selectedAnswer, setSelectedAnswer] = useState(null);
-const [quizSubmitting, setQuizSubmitting] = useState(false);
-const [quizResult, setQuizResult] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
 
-const textareaRef = useRef(null);
-const messagesEndRef = useRef(null);
+  const [typing, setTyping] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
 
-useEffect(() => {
-messagesEndRef.current?.scrollIntoView({
-behavior: "smooth",
-});
-}, [messages, isTyping]);
+  const [activeMode, setActiveMode] = useState("chat");
 
-const focusInput = () => {
-window.setTimeout(() => {
-textareaRef.current?.focus();
-}, 50);
-};
+  const [quizMode, setQuizMode] = useState(false);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizSubmitting, setQuizSubmitting] = useState(false);
 
-const sendMessage = async (messageText = input) => {
-const text = String(messageText || "").trim();
+  const [quiz, setQuiz] = useState(null);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [answers, setAnswers] = useState([]);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
 
+  const [quizResult, setQuizResult] = useState(null);
+  const [quizError, setQuizError] = useState(null);
 
-if (!text || isTyping) return;
+  const [error, setError] = useState(null);
 
-setMessages((current) => [
-  ...current,
-  {
-    id: `user-${Date.now()}`,
-    role: "user",
-    content: text,
-  },
-]);
+  const textareaRef = useRef(null);
 
-setInput("");
-setIsTyping(true);
+  /* =======================================================
+     WAIT FOR CLERK
+  ======================================================= */
 
-try {
-  const response = await sendMentorMessage(
-    text,
-    getToken
-  );
+  useEffect(() => {
+    let cancelled = false;
 
-  setMessages((current) => [
-    ...current,
-    {
-      id: `assistant-${Date.now()}`,
-      role: "assistant",
-      content:
-        response?.answer ||
-        response?.message ||
-        response?.response ||
-        "I couldn't generate a response.",
-    },
-  ]);
-} catch (error) {
-  console.error("❌ Mentor message error:", error);
-  console.error(
-    "❌ Backend response:",
-    error?.response?.data
-  );
+    async function prepareAuthentication() {
+      /*
+       * Clerk itself is still loading.
+       */
+      if (!isLoaded) {
+        setAuthReady(false);
+        return;
+      }
 
-  setMessages((current) => [
-    ...current,
-    {
-      id: `error-${Date.now()}`,
-      role: "assistant",
-      isError: true,
-      content: getErrorMessage(
-        error,
-        "Something went wrong while contacting your AI Mentor."
-      ),
-    },
-  ]);
-} finally {
-  setIsTyping(false);
-}
+      /*
+       * Clerk finished loading but user is not signed in.
+       */
+      if (!isSignedIn) {
+        setAuthToken(null);
+        setAuthReady(false);
+        return;
+      }
 
+      /*
+       * Clerk says the user is signed in.
+       * Now actually obtain the token before showing Mentor.
+       */
+      try {
+        console.log("🔐 MENTOR: Clerk loaded.");
+        console.log("🔐 MENTOR: User is signed in.");
+        console.log("🔐 MENTOR: Getting session token...");
 
-};
+        const token = await getToken();
 
-const generateVisual = async (promptText = input) => {
-const prompt = String(promptText || "").trim();
+        if (cancelled) return;
 
+        if (!token) {
+          console.error(
+            "❌ MENTOR: Clerk returned no token."
+          );
 
-if (!prompt || isGeneratingImage) return;
-
-setMessages((current) => [
-  ...current,
-  {
-    id: `user-image-${Date.now()}`,
-    role: "user",
-    content: prompt,
-  },
-]);
-
-setInput("");
-setIsGeneratingImage(true);
-
-try {
-  const response = await generateMentorImage(
-    prompt,
-    getToken
-  );
-
-  const image = response?.image;
-
-  if (!image) {
-    throw new Error(
-      "The AI did not return an image."
-    );
-  }
-
-  setMessages((current) => [
-    ...current,
-    {
-      id: `assistant-image-${Date.now()}`,
-      role: "assistant",
-      type: "image",
-      image: `data:${
-        response?.mimeType || "image/png"
-      };base64,${image}`,
-    },
-  ]);
-} catch (error) {
-  console.error("❌ Mentor image error:", error);
-
-  setMessages((current) => [
-    ...current,
-    {
-      id: `image-error-${Date.now()}`,
-      role: "assistant",
-      isError: true,
-      content: getErrorMessage(
-        error,
-        "I couldn't generate that visual."
-      ),
-    },
-  ]);
-} finally {
-  setIsGeneratingImage(false);
-}
-
-
-};
-
-/*
-
-* START QUIZ
-*
-* This function ONLY generates a new quiz.
-* It is never called when submitting an existing quiz.
-  */
-  const startQuiz = async () => {
-  if (quizLoading || quizSubmitting) return;
-
-
-setQuizLoading(true);
-
-setQuizError("");
-setQuizResult(null);
-setQuiz(null);
-setAnswers([]);
-setSelectedAnswer(null);
-setCurrentQuestionIndex(0);
-setQuizMode(true);
-setActiveMode("quiz");
-
-try {
-  const token = await getToken();
-
-  if (!token) {
-    throw new Error(
-      "Authentication token was not generated."
-    );
-  }
-
-  console.log("📚 Getting current lesson...");
-
-  const lessonResponse = await getCurrentLesson(token);
-  const lesson = getLessonFromResponse(
-    lessonResponse
-  );
-
-  console.log(
-    "📖 Current lesson:",
-    lesson?.title,
-    lesson?.id
-  );
-
-  if (!lesson?.id) {
-    throw new Error(
-      "Could not determine your current lesson."
-    );
-  }
-
-  console.log(
-    "🧠 Getting quiz for lesson:",
-    lesson.id
-  );
-
-  const quizResponse = await generateQuiz(
-    lesson.id,
-    token
-  );
-
-  console.log(
-    "🧠 RAW QUIZ RESPONSE:",
-    quizResponse
-  );
-
-  const generatedQuiz =
-    getQuizFromResponse(quizResponse);
-
-  if (
-    !generatedQuiz?.id ||
-    !Array.isArray(generatedQuiz.questions) ||
-    generatedQuiz.questions.length === 0
-  ) {
-    throw new Error(
-      "No quiz questions were returned."
-    );
-  }
-
-  const questions = normalizeQuestions(
-    generatedQuiz.questions
-  );
-
-  console.log(
-    "🧩 QUIZ QUESTIONS:",
-    questions
-  );
-
-  console.log(
-    "🧩 FIRST QUESTION OPTIONS:",
-    questions[0]
-      ? {
-          optionA: questions[0].optionA,
-          optionB: questions[0].optionB,
-          optionC: questions[0].optionC,
-          optionD: questions[0].optionD,
-          options: questions[0].options,
+          setAuthToken(null);
+          setAuthReady(false);
+          return;
         }
-      : null
+
+        console.log(
+          "✅ MENTOR: Authentication token ready."
+        );
+
+        setAuthToken(token);
+        setAuthReady(true);
+      } catch (error) {
+        if (cancelled) return;
+
+        console.error(
+          "❌ MENTOR: Failed to get Clerk token:",
+          error
+        );
+
+        setAuthToken(null);
+        setAuthReady(false);
+      }
+    }
+
+    prepareAuthentication();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoaded, isSignedIn, getToken]);
+
+  /* =======================================================
+     AUTH TOKEN HELPER
+  ======================================================= */
+
+  const getAuthToken = useCallback(async () => {
+    if (!isLoaded) {
+      throw new Error(
+        "Clerk is still loading."
+      );
+    }
+
+    if (!isSignedIn) {
+      throw new Error(
+        "Your Mentra session is not signed in."
+      );
+    }
+
+    if (!authToken) {
+      throw new Error(
+        "Mentra authentication is still loading."
+      );
+    }
+
+    return authToken;
+  }, [
+    isLoaded,
+    isSignedIn,
+    authToken,
+  ]);
+
+  /* =======================================================
+     AUTH STATE LOG
+  ======================================================= */
+
+  useEffect(() => {
+    console.log("🔐 MENTOR AUTH STATE:", {
+      isLoaded,
+      isSignedIn,
+      tokenReady: !!authToken,
+      authReady,
+    });
+  }, [
+    isLoaded,
+    isSignedIn,
+    authToken,
+    authReady,
+  ]);
+
+  /* =======================================================
+     SEND MESSAGE
+  ======================================================= */
+
+  const sendMessage = useCallback(
+    async (messageText = input) => {
+      const text = messageText.trim();
+
+      if (!text || typing) return;
+
+      if (!authReady || !authToken) {
+        setError(
+          "Mentor is still preparing your secure session. Please wait a moment."
+        );
+        return;
+      }
+
+      setError(null);
+      setInput("");
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          role: "user",
+          content: text,
+        },
+      ]);
+
+      setTyping(true);
+
+      try {
+        const token = await getAuthToken();
+
+        const response = await sendMentorMessage(
+          text,
+          async () => token
+        );
+
+        const answer =
+          response?.message ||
+          response?.answer ||
+          response?.response ||
+          response?.data?.message ||
+          response?.data?.answer ||
+          "I received your message.";
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            role: "assistant",
+            content: answer,
+          },
+        ]);
+      } catch (err) {
+        console.error(
+          "❌ Mentor chat error:",
+          err
+        );
+
+        setError(getApiError(err));
+      } finally {
+        setTyping(false);
+      }
+    },
+    [
+      input,
+      typing,
+      authReady,
+      authToken,
+      getAuthToken,
+    ]
   );
 
-  const usableQuestions = questions.filter(
-    (question) =>
-      getQuizOptions(question).length > 0
+  /* =======================================================
+     GENERATE VISUAL
+  ======================================================= */
+
+  const generateVisual = useCallback(
+    async (prompt = input) => {
+      const text = prompt.trim();
+
+      if (!text || imageLoading) return;
+
+      if (!authReady || !authToken) {
+        setError(
+          "Mentor is still preparing your secure session."
+        );
+        return;
+      }
+
+      setError(null);
+      setImageLoading(true);
+      setInput("");
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          role: "user",
+          content: text,
+        },
+      ]);
+
+      try {
+        const token = await getAuthToken();
+
+        const response =
+          await generateMentorImage(
+            text,
+            async () => token
+          );
+
+        const imageUrl =
+          response?.imageUrl ||
+          response?.image ||
+          response?.url ||
+          response?.data?.imageUrl ||
+          response?.data?.image;
+
+        if (!imageUrl) {
+          throw new Error(
+            "The mentor did not return an image."
+          );
+        }
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            role: "assistant",
+            type: "image",
+            content: imageUrl,
+          },
+        ]);
+      } catch (err) {
+        console.error(
+          "❌ Mentor image error:",
+          err
+        );
+
+        setError(getApiError(err));
+      } finally {
+        setImageLoading(false);
+      }
+    },
+    [
+      input,
+      imageLoading,
+      authReady,
+      authToken,
+      getAuthToken,
+    ]
   );
 
-  if (usableQuestions.length === 0) {
-    throw new Error(
-      "The quiz was generated, but no answer choices were found. The expected format is optionA, optionB, optionC and optionD."
+  /* =======================================================
+     START QUIZ
+  ======================================================= */
+
+  const startQuiz = useCallback(
+    async () => {
+      if (quizLoading || quizSubmitting) return;
+
+      if (!authReady || !authToken) {
+        setQuizError(
+          "Mentor is still preparing your secure session."
+        );
+        return;
+      }
+
+      setQuizLoading(true);
+      setQuizError(null);
+      setQuizResult(null);
+      setQuiz(null);
+      setAnswers([]);
+      setSelectedAnswer(null);
+      setCurrentQuestion(0);
+      setQuizMode(true);
+      setActiveMode("quiz");
+
+      try {
+        const token = await getAuthToken();
+
+        console.log(
+          "🧠 QUIZ: Getting current lesson..."
+        );
+
+        const lessonResponse =
+          await getCurrentLesson(token);
+
+        const lesson =
+          getLessonFromResponse(
+            lessonResponse
+          );
+
+        if (!lesson?.id) {
+          throw new Error(
+            "No current lesson was found."
+          );
+        }
+
+        console.log(
+          "🧠 QUIZ: Generating quiz for lesson:",
+          lesson.id
+        );
+
+        const quizResponse =
+          await generateQuiz(
+            lesson.id,
+            token
+          );
+
+        const generatedQuiz =
+          getQuizFromResponse(
+            quizResponse
+          );
+
+        if (!generatedQuiz) {
+          throw new Error(
+            "Quiz generation returned no quiz."
+          );
+        }
+
+        const normalizedQuestions =
+          normalizeQuestions(
+            generatedQuiz.questions
+          );
+
+        const usableQuestions =
+          normalizedQuestions.filter(
+            (question) =>
+              question.options.length > 0
+          );
+
+        if (!usableQuestions.length) {
+          throw new Error(
+            "The generated quiz contains no usable questions."
+          );
+        }
+
+        setQuiz({
+          ...generatedQuiz,
+          questions: usableQuestions,
+          lessonTitle:
+            lesson.title ||
+            "Current Lesson",
+        });
+
+        console.log(
+          "✅ QUIZ: Quiz ready."
+        );
+      } catch (err) {
+        console.error(
+          "❌ QUIZ START ERROR:",
+          err
+        );
+
+        setQuizError(
+          getApiError(err)
+        );
+      } finally {
+        setQuizLoading(false);
+      }
+    },
+    [
+      quizLoading,
+      quizSubmitting,
+      authReady,
+      authToken,
+      getAuthToken,
+    ]
+  );
+
+  /* =======================================================
+     SAVE CURRENT ANSWER
+  ======================================================= */
+
+  const saveCurrentAnswer =
+    useCallback(() => {
+      if (selectedAnswer === null) {
+        return answers;
+      }
+
+      const question =
+        quiz?.questions?.[
+          currentQuestion
+        ];
+
+      if (!question) {
+        return answers;
+      }
+
+      const nextAnswers = [
+        ...answers.filter(
+          (answer) =>
+            answer.questionId !==
+            question.id
+        ),
+        {
+          questionId: question.id,
+          answer: selectedAnswer,
+        },
+      ];
+
+      setAnswers(nextAnswers);
+
+      return nextAnswers;
+    }, [
+      selectedAnswer,
+      answers,
+      quiz,
+      currentQuestion,
+    ]);
+
+  /* =======================================================
+     NEXT QUESTION
+  ======================================================= */
+
+  const handleNextQuestion =
+    useCallback(() => {
+      const nextAnswers =
+        saveCurrentAnswer();
+
+      setAnswers(nextAnswers);
+
+      if (
+        !quiz?.questions ||
+        currentQuestion >=
+          quiz.questions.length - 1
+      ) {
+        return;
+      }
+
+      setCurrentQuestion(
+        (prev) => prev + 1
+      );
+
+      setSelectedAnswer(null);
+    }, [
+      saveCurrentAnswer,
+      quiz,
+      currentQuestion,
+    ]);
+
+  /* =======================================================
+     SUBMIT QUIZ
+  ======================================================= */
+
+  const handleSubmitQuiz =
+    useCallback(async () => {
+      if (
+        quizSubmitting ||
+        !quiz?.id
+      ) {
+        return;
+      }
+
+      if (!authReady || !authToken) {
+        setQuizError(
+          "Your secure session is still loading."
+        );
+        return;
+      }
+
+      const finalAnswers =
+        saveCurrentAnswer();
+
+      setQuizSubmitting(true);
+      setQuizError(null);
+
+      try {
+        const token =
+          await getAuthToken();
+
+        console.log(
+          "🧠 QUIZ: Submitting answers..."
+        );
+
+        const response =
+          await submitQuiz(
+            quiz.id,
+            finalAnswers,
+            token
+          );
+
+        const result =
+          response?.result ||
+          response?.data?.result ||
+          response?.data ||
+          response;
+
+        setQuizResult(result);
+
+        setQuizMode(false);
+        setActiveMode("chat");
+      } catch (err) {
+        console.error(
+          "❌ QUIZ SUBMIT ERROR:",
+          err
+        );
+
+        setQuizError(
+          getApiError(err)
+        );
+      } finally {
+        setQuizSubmitting(false);
+      }
+    }, [
+      quizSubmitting,
+      quiz,
+      authReady,
+      authToken,
+      saveCurrentAnswer,
+      getAuthToken,
+    ]);
+
+  /* =======================================================
+     RESTART QUIZ
+  ======================================================= */
+
+  const restartQuiz =
+    useCallback(() => {
+      setQuizResult(null);
+      setQuiz(null);
+      setAnswers([]);
+      setSelectedAnswer(null);
+      setCurrentQuestion(0);
+      setQuizError(null);
+
+      setQuizMode(true);
+      setActiveMode("quiz");
+
+      startQuiz();
+    }, [startQuiz]);
+
+  /* =======================================================
+     EXIT QUIZ
+  ======================================================= */
+
+  const exitQuiz = useCallback(() => {
+    setQuizMode(false);
+    setQuiz(null);
+    setQuizResult(null);
+    setAnswers([]);
+    setSelectedAnswer(null);
+    setCurrentQuestion(0);
+    setQuizError(null);
+    setActiveMode("chat");
+  }, []);
+
+  /* =======================================================
+     MODE CHANGE
+  ======================================================= */
+
+  const handleModeChange =
+    useCallback(
+      (mode) => {
+        if (!authReady) return;
+
+        setActiveMode(mode);
+
+        if (mode === "quiz") {
+          startQuiz();
+          return;
+        }
+
+        setQuizMode(false);
+        setInput("");
+
+        setTimeout(() => {
+          textareaRef.current?.focus();
+        }, 50);
+      },
+      [authReady, startQuiz]
     );
-  }
 
-  setQuiz({
-    ...generatedQuiz,
-    questions: usableQuestions,
-    lessonTitle:
-      lesson.title || "Current Lesson",
-  });
-} catch (error) {
-  console.error(
-    "❌ Start quiz error:",
-    error
-  );
-
-  console.error(
-    "❌ Quiz backend response:",
-    error?.response?.data
-  );
-
-  setQuizError(
-    getErrorMessage(
-      error,
-      "Unable to start the quiz. Please try again."
-    )
-  );
-} finally {
-  setQuizLoading(false);
-}
-
-
-};
-
-const selectAnswer = (number) => {
-if (quizSubmitting) return;
-
-
-setSelectedAnswer(number);
-
-
-};
-
-/*
-
-* Save the answer currently selected.
-*
-* Returns the complete answer array so the final answer
-* can be submitted immediately without waiting for React
-* state to update.
-  */
-  const saveCurrentAnswer = () => {
-  if (
-  !quiz ||
-  selectedAnswer === null
-  ) {
-  return null;
-  }
-
-
-const question =
-
-
-
-  quiz.questions[currentQuestionIndex];
-
-if (!question?.id) {
-  return null;
-}
-
-const nextAnswers = [
-  ...answers.filter(
-    (item) =>
-      item.questionId !== question.id
-  ),
-  {
-    questionId: question.id,
-    answer: selectedAnswer,
-  },
-];
-
-setAnswers(nextAnswers);
-
-return nextAnswers;
-
-
-};
-
-/*
-
-* NEXT QUESTION
-*
-* This function is ONLY for moving between questions.
-* It does NOT submit the quiz.
-  */
-  const handleNextQuestion = () => {
-  if (!quiz || quizSubmitting) return;
-
-
-const nextAnswers = saveCurrentAnswer();
-
-
-
-if (!nextAnswers) return;
-
-if (
-  currentQuestionIndex <
-  quiz.questions.length - 1
-) {
-  setCurrentQuestionIndex(
-    (current) => current + 1
-  );
-
-  setSelectedAnswer(null);
-}
-
-
-};
-
-/*
-
-* SUBMIT QUIZ
-*
-* This is the ONLY function responsible for finishing
-* the quiz.
-*
-* IMPORTANT:
-* It does NOT call startQuiz().
-  */
-  const handleSubmitQuiz = async () => {
-  if (!quiz || quizSubmitting) return;
-
-
-const finalAnswers = saveCurrentAnswer();
-
-
-
-if (!finalAnswers) return;
-
-setQuizSubmitting(true);
-setQuizError("");
-
-try {
-  const token = await getToken();
-
-  if (!token) {
-    throw new Error(
-      "Authentication token was not generated."
-    );
-  }
-
-  console.log(
-    "📝 FINAL QUIZ SUBMISSION:",
-    quiz.id,
-    finalAnswers
-  );
-
-  const response = await submitQuiz(
-    quiz.id,
-    finalAnswers,
-    token
-  );
-
-  console.log(
-    "🏆 Quiz result:",
-    response
-  );
-
-  const result =
-    response?.result ||
-    response?.data?.result ||
-    response?.data ||
-    response;
-
-  /*
-   * Quiz is officially finished.
-   *
-   * Keep the completed quiz in state because the
-   * results screen uses its questions.
-   */
-  setQuizResult(result);
-
-  /*
-   * Stop quiz mode.
-   *
-   * IMPORTANT:
-   * We do NOT call startQuiz here.
-   */
-  setQuizMode(false);
-  setActiveMode("chat");
-} catch (error) {
-  console.error(
-    "❌ Submit quiz error:",
-    error
-  );
-
-  console.error(
-    "❌ Submit backend response:",
-    error?.response?.data
-  );
-
-  setQuizError(
-    getErrorMessage(
-      error,
-      "Unable to submit the quiz."
-    )
-  );
-} finally {
-  setQuizSubmitting(false);
-}
-
-
-};
-
-/*
-
-* RETRY QUIZ
-*
-* Generate a completely fresh quiz.
-  */
-  const restartQuiz = () => {
-  if (quizLoading || quizSubmitting) return;
-
-setQuizResult(null);
-
-
-
-setQuizError("");
-setQuiz(null);
-setCurrentQuestionIndex(0);
-setAnswers([]);
-setSelectedAnswer(null);
-setQuizMode(true);
-setActiveMode("quiz");
-
-/*
- * startQuiz() is intentionally called here because
- * the user explicitly requested a new quiz.
- */
-startQuiz();
-
-};
-
-const exitQuiz = () => {
-setQuizMode(false);
-setQuiz(null);
-setQuizResult(null);
-setQuizError("");
-setAnswers([]);
-setSelectedAnswer(null);
-setCurrentQuestionIndex(0);
-setActiveMode("chat");
-focusInput();
-};
-
-const clearChat = () => {
-setMessages([]);
-setInput("");
-focusInput();
-};
-
-const handleModeChange = (mode) => {
-setActiveMode(mode);
-
-
-if (mode === "quiz") {
-  startQuiz();
-  return;
-}
-
-setInput("");
-focusInput();
-
-
-};
-
-const handleSubmit = (event) => {
-event?.preventDefault?.();
-
-
-if (activeMode === "visual") {
-  generateVisual();
-} else {
-  sendMessage();
-}
-
-
-};
-
-const handleKeyDown = (event) => {
-if (
-event.key === "Enter" &&
-!event.shiftKey
-) {
-event.preventDefault();
-handleSubmit(event);
-}
-};
-
-const handleQuickPrompt = (item) => {
-if (item.action === "quiz") {
-startQuiz();
-return;
-}
-
-
-sendMessage(item.prompt);
-
-};
-
-return ( <DashboardLayout> <div className="flex min-h-[calc(100vh-120px)] min-w-0 flex-col"> <section className="mb-5 rounded-[28px] border border-[var(--mentra-border)] bg-[var(--mentra-surface-2)] p-4 shadow-sm sm:p-5 lg:p-6"> <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"> <div className="flex min-w-0 items-center gap-3 sm:gap-4"> <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 text-white shadow-lg shadow-violet-500/20 sm:h-14 sm:w-14"> <Sparkles size={25} /> <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-[var(--mentra-surface-2)] bg-emerald-400" /> </div>
-
-
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-black tracking-tight text-[var(--mentra-text)] sm:text-2xl lg:text-3xl">
-                AI Mentor
-              </h1>
-
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                Online
-              </span>
+  /* =======================================================
+     CLEAR CHAT
+  ======================================================= */
+
+  const clearChat = () => {
+    setMessages([]);
+    setError(null);
+  };
+
+  /* =======================================================
+     QUICK PROMPT
+  ======================================================= */
+
+  const handleQuickPrompt = (
+    prompt,
+    mode = "chat"
+  ) => {
+    if (!authReady) return;
+
+    if (mode === "quiz") {
+      startQuiz();
+      return;
+    }
+
+    setInput(prompt);
+
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 50);
+  };
+
+  /* =======================================================
+     LOADING SCREEN
+  ======================================================= */
+
+  if (!isLoaded || !authReady) {
+    return (
+      <DashboardLayout>
+        <div className="min-h-[70vh] flex items-center justify-center px-6">
+          <div className="w-full max-w-md text-center">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-500/10">
+              <Loader2 className="h-10 w-10 animate-spin text-emerald-500" />
             </div>
 
-            <p className="mt-1 text-xs text-[var(--mentra-text-muted)] sm:text-sm">
-              Your personal AI learning companion.
+            <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
+              Preparing AI Mentor
+            </h1>
+
+            <p className="mt-3 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+              {!isLoaded
+                ? "Waiting for your secure Mentra session to finish loading..."
+                : !isSignedIn
+                ? "Waiting for your Mentra account session..."
+                : "Securing your Mentor session and getting your authentication token..."}
+            </p>
+
+            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-zinc-400">
+              <Sparkles className="h-4 w-4" />
+              <span>
+                Your Mentor will be ready in a moment
+              </span>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  /* =======================================================
+     SIGNED OUT
+  ======================================================= */
+
+  if (!isSignedIn || !authToken) {
+    return (
+      <DashboardLayout>
+        <div className="min-h-[70vh] flex items-center justify-center px-6">
+          <div className="max-w-md text-center">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-red-500/10">
+              <User className="h-10 w-10 text-red-500" />
+            </div>
+
+            <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
+              Session Required
+            </h1>
+
+            <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+              Please sign in again to use AI Mentor.
             </p>
           </div>
         </div>
+      </DashboardLayout>
+    );
+  }
 
-        <div className="flex items-center gap-2">
-          <div className="hidden items-center gap-2 rounded-xl border border-violet-500/10 bg-violet-500/5 px-3 py-2 text-xs font-bold text-violet-300 md:flex">
-            <Zap size={14} />
-            Context-aware learning
-          </div>
+  /* =======================================================
+     MAIN UI
+  ======================================================= */
 
-          {messages.length > 0 && !quizMode && (
+  return (
+    <DashboardLayout>
+      <div className="flex min-h-[calc(100vh-80px)] flex-col">
+        {/* HEADER */}
+
+        <div className="border-b border-zinc-200 dark:border-zinc-800">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10">
+                <Sparkles className="h-5 w-5 text-emerald-500" />
+              </div>
+
+              <div>
+                <h1 className="font-semibold text-zinc-900 dark:text-white">
+                  AI Mentor
+                </h1>
+
+                <div className="flex items-center gap-2 text-xs text-zinc-500">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  Online
+                </div>
+              </div>
+            </div>
+
             <button
-              type="button"
               onClick={clearChat}
-              className="inline-flex items-center gap-2 rounded-xl border border-[var(--mentra-border)] bg-[var(--mentra-surface)] px-3 py-2 text-xs font-bold text-[var(--mentra-text-muted)] transition hover:border-red-500/30 hover:text-red-400 sm:px-4 sm:py-2.5 sm:text-sm"
+              className="rounded-xl p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-white"
+              title="Clear chat"
             >
-              <Trash2 size={15} />
-              <span className="hidden sm:inline">
-                Clear chat
-              </span>
+              <Trash2 className="h-4 w-4" />
             </button>
-          )}
-
-          {quizMode && (
-            <button
-              type="button"
-              onClick={exitQuiz}
-              className="inline-flex items-center gap-2 rounded-xl border border-[var(--mentra-border)] bg-[var(--mentra-surface)] px-3 py-2 text-xs font-bold text-[var(--mentra-text-muted)] transition hover:text-[var(--mentra-text)] sm:px-4 sm:py-2.5 sm:text-sm"
-            >
-              <ChevronLeft size={15} />
-              Exit quiz
-            </button>
-          )}
+          </div>
         </div>
-      </div>
-    </section>
 
-    {quizResult ? (
-      <QuizResults
-        result={quizResult}
-        quiz={quiz}
-        onRestart={restartQuiz}
-        onExit={exitQuiz}
-      />
-    ) : quizMode ? (
-      <QuizView
-        quiz={quiz}
-        loading={quizLoading}
-        error={quizError}
-        currentQuestionIndex={currentQuestionIndex}
-        selectedAnswer={selectedAnswer}
-        submitting={quizSubmitting}
-        onSelectAnswer={selectAnswer}
-        onNext={handleNextQuestion}
-        onSubmit={handleSubmitQuiz}
-        onRetry={startQuiz}
-        onExit={exitQuiz}
-      />
-    ) : (
-      <section className="flex min-h-[560px] min-w-0 flex-1 flex-col overflow-hidden rounded-[28px] border border-[var(--mentra-border)] bg-[var(--mentra-surface-2)] shadow-sm">
-        <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <div className="p-4 sm:p-6 lg:p-8">
-            {messages.length === 0 ? (
-              <WelcomeState
-                onPrompt={handleQuickPrompt}
-              />
-            ) : (
-              <div className="mx-auto w-full max-w-4xl space-y-5">
-                {messages.map((message) => (
-                  <Message
-                    key={message.id}
-                    message={message}
+        {/* CONTENT */}
+
+        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 sm:px-6">
+          {quizMode ? (
+            <QuizView
+              quiz={quiz}
+              loading={quizLoading}
+              error={quizError}
+              currentQuestion={currentQuestion}
+              selectedAnswer={selectedAnswer}
+              setSelectedAnswer={
+                setSelectedAnswer
+              }
+              onNext={handleNextQuestion}
+              onSubmit={handleSubmitQuiz}
+              onExit={exitQuiz}
+              submitting={quizSubmitting}
+            />
+          ) : quizResult ? (
+            <QuizResults
+              result={quizResult}
+              onRestart={restartQuiz}
+              onBack={exitQuiz}
+            />
+          ) : (
+            <div className="flex flex-1 flex-col">
+              {/* MESSAGES */}
+
+              <div className="flex-1 space-y-5 py-6">
+                {messages.length === 0 ? (
+                  <WelcomeState
+                    onPrompt={handleQuickPrompt}
                   />
-                ))}
+                ) : (
+                  messages.map((message) => (
+                    <Message
+                      key={message.id}
+                      message={message}
+                    />
+                  ))
+                )}
 
-                {isTyping && (
+                {typing && (
                   <TypingIndicator />
                 )}
 
-                {isGeneratingImage && (
+                {imageLoading && (
                   <ImageLoading />
                 )}
-
-                <div ref={messagesEndRef} />
               </div>
-            )}
-          </div>
-        </div>
 
-        <div className="border-t border-[var(--mentra-border)] bg-[var(--mentra-surface)]/90 p-3 backdrop-blur-xl sm:p-4">
-          <div className="mx-auto max-w-4xl">
-            <div className="mb-3 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {modes.map((mode) => {
-                const Icon = mode.icon;
-                const active =
-                  activeMode === mode.id;
+              {/* ERROR */}
 
-                return (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    onClick={() =>
-                      handleModeChange(mode.id)
-                    }
-                    className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-black transition sm:px-3.5 ${
-                      active
-                        ? "bg-violet-600 text-white shadow-md shadow-violet-600/20"
-                        : "border border-[var(--mentra-border)] bg-[var(--mentra-surface-2)] text-[var(--mentra-text-muted)] hover:border-violet-500/30 hover:text-[var(--mentra-text)]"
-                    }`}
-                  >
-                    <Icon size={14} />
-                    {mode.label}
-                  </button>
-                );
-              })}
-            </div>
+              {error && (
+                <div className="mb-4 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-500">
+                  {error}
+                </div>
+              )}
 
-            <form onSubmit={handleSubmit}>
-              <div className="rounded-2xl border border-[var(--mentra-border)] bg-[var(--mentra-surface-2)] p-2 transition focus-within:border-violet-500/40 focus-within:ring-2 focus-within:ring-violet-500/10">
-                <div className="flex items-end gap-2">
-                  <textarea
-                    ref={textareaRef}
-                    value={input}
-                    onChange={(event) =>
-                      setInput(event.target.value)
-                    }
-                    onKeyDown={handleKeyDown}
-                    rows={1}
-                    disabled={
-                      isTyping ||
-                      isGeneratingImage
-                    }
-                    placeholder={
-                      activeMode === "visual"
-                        ? "Describe the visual you want..."
-                        : "Ask your AI Mentor anything..."
-                    }
-                    className="max-h-32 min-h-[48px] flex-1 resize-none bg-transparent px-3 py-3 text-sm leading-6 text-[var(--mentra-text)] outline-none placeholder:text-[var(--mentra-text-muted)] disabled:opacity-60"
-                  />
+              {/* INPUT */}
 
-                  <button
-                    type="submit"
-                    disabled={
-                      !input.trim() ||
-                      isTyping ||
-                      isGeneratingImage
-                    }
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/20 transition hover:-translate-y-0.5 hover:from-violet-500 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
-                  >
-                    {activeMode === "visual" ? (
-                      <Wand2 size={18} />
-                    ) : (
-                      <Send size={18} />
+              <div className="sticky bottom-0 pb-5 pt-3">
+                <div className="rounded-3xl border border-zinc-200 bg-white p-2 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="flex items-end gap-2">
+                    <textarea
+                      ref={textareaRef}
+                      value={input}
+                      onChange={(e) =>
+                        setInput(e.target.value)
+                      }
+                      onKeyDown={(e) => {
+                        if (
+                          e.key === "Enter" &&
+                          !e.shiftKey
+                        ) {
+                          e.preventDefault();
+
+                          if (
+                            activeMode ===
+                            "visual"
+                          ) {
+                            generateVisual();
+                          } else {
+                            sendMessage();
+                          }
+                        }
+                      }}
+                      placeholder={
+                        activeMode === "visual"
+                          ? "Describe what you want me to visualize..."
+                          : "Ask your AI Mentor anything..."
+                      }
+                      rows={1}
+                      className="min-h-[46px] flex-1 resize-none border-0 bg-transparent px-3 py-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-white"
+                    />
+
+                    <button
+                      onClick={() =>
+                        activeMode ===
+                        "visual"
+                          ? generateVisual()
+                          : sendMessage()
+                      }
+                      disabled={
+                        !input.trim() ||
+                        typing ||
+                        imageLoading ||
+                        !authReady
+                      }
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {typing ||
+                      imageLoading ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Send className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="mt-2 flex items-center gap-1 px-1">
+                    {MODES.map(
+                      ({
+                        id,
+                        label,
+                        icon: Icon,
+                      }) => (
+                        <button
+                          key={id}
+                          onClick={() =>
+                            handleModeChange(
+                              id
+                            )
+                          }
+                          disabled={!authReady}
+                          className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition ${
+                            activeMode === id
+                              ? "bg-emerald-500/10 text-emerald-500"
+                              : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                          }`}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          {label}
+                        </button>
+                      )
                     )}
-                  </button>
+                  </div>
                 </div>
               </div>
-            </form>
-
-            <p className="mt-2 text-center text-[10px] text-[var(--mentra-text-muted)] sm:text-xs">
-              Enter to send • Shift + Enter for a
-              new line
-            </p>
-          </div>
+            </div>
+          )}
         </div>
-      </section>
-    )}
-  </div>
-</DashboardLayout>
-
-
-);
+      </div>
+    </DashboardLayout>
+  );
 }
+
+/* =========================================================
+   WELCOME
+========================================================= */
 
 function WelcomeState({ onPrompt }) {
-return ( <div className="mx-auto flex min-h-[520px] w-full max-w-4xl flex-col items-center justify-center py-8 text-center sm:py-12"> <div className="relative"> <div className="absolute inset-0 rounded-[30px] bg-violet-500/20 blur-3xl" />
+  return (
+    <div className="flex min-h-[55vh] flex-col items-center justify-center text-center">
+      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-500/10">
+        <Bot className="h-10 w-10 text-emerald-500" />
+      </div>
 
+      <h2 className="text-3xl font-bold text-zinc-900 dark:text-white">
+        How can I help you learn?
+      </h2>
 
-    <div className="relative flex h-20 w-20 items-center justify-center rounded-[28px] bg-gradient-to-br from-violet-600 to-cyan-500 text-white shadow-2xl shadow-violet-500/20 sm:h-24 sm:w-24">
-      <Sparkles size={34} />
+      <p className="mt-3 max-w-lg text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+        Ask questions, get coding help, create study
+        plans, generate visuals, or test your knowledge
+        with a quiz.
+      </p>
+
+      <div className="mt-8 grid w-full max-w-3xl grid-cols-1 gap-3 sm:grid-cols-2">
+        {QUICK_PROMPTS.map(
+          ({
+            icon: Icon,
+            title,
+            prompt,
+          }) => (
+            <button
+              key={title}
+              onClick={() =>
+                onPrompt(
+                  prompt,
+                  title === "Quiz me"
+                    ? "quiz"
+                    : "chat"
+                )
+              }
+              className="group rounded-2xl border border-zinc-200 bg-white p-4 text-left transition hover:border-emerald-500/40 hover:bg-emerald-500/5 dark:border-zinc-800 dark:bg-zinc-900"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800">
+                  <Icon className="h-5 w-5 text-emerald-500" />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-white">
+                    {title}
+                  </p>
+
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Try this with Mentor
+                  </p>
+                </div>
+              </div>
+            </button>
+          )
+        )}
+      </div>
     </div>
-  </div>
-
-  <div className="mt-7 flex items-center gap-2 rounded-full border border-violet-500/10 bg-violet-500/5 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-violet-400">
-    <GraduationCap size={13} />
-    Mentra Intelligence
-  </div>
-
-  <h2 className="mt-4 max-w-2xl text-3xl font-black tracking-tight text-[var(--mentra-text)] sm:text-4xl lg:text-5xl">
-    Learn smarter with your AI Mentor.
-  </h2>
-
-  <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--mentra-text-muted)] sm:text-base">
-    Ask questions, understand difficult concepts,
-    get coding help, create visuals, or test your
-    knowledge from your current lesson.
-  </p>
-
-  <div className="mt-9 grid w-full gap-3 text-left sm:grid-cols-2">
-    {quickPrompts.map((item) => {
-      const Icon = item.icon;
-
-      return (
-        <button
-          key={item.label}
-          type="button"
-          onClick={() => onPrompt(item)}
-          className="group rounded-2xl border border-[var(--mentra-border)] bg-[var(--mentra-surface)] p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-500/30 hover:bg-violet-500/5 hover:shadow-lg hover:shadow-violet-500/5 sm:p-5"
-        >
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-400 transition group-hover:bg-violet-500/15">
-              <Icon size={20} />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <p className="font-black text-[var(--mentra-text)]">
-                {item.label}
-              </p>
-
-              <p className="mt-1 text-xs leading-5 text-[var(--mentra-text-muted)]">
-                {item.description}
-              </p>
-            </div>
-
-            <ArrowRight
-              size={17}
-              className="mt-1 shrink-0 text-[var(--mentra-text-muted)] transition group-hover:translate-x-1 group-hover:text-violet-400"
-            />
-          </div>
-        </button>
-      );
-    })}
-  </div>
-
-  <div className="mt-7 flex flex-wrap justify-center gap-5 text-[10px] font-black uppercase tracking-wider text-[var(--mentra-text-muted)]">
-    <span className="flex items-center gap-1.5">
-      <Brain size={13} /> Context aware
-    </span>
-
-    <span className="flex items-center gap-1.5">
-      <Zap size={13} /> Interactive
-    </span>
-
-    <span className="flex items-center gap-1.5">
-      <Target size={13} /> Personalized
-    </span>
-  </div>
-</div>
-
-
-);
+  );
 }
 
-function Message({ message }) {
-const isUser = message.role === "user";
+/* =========================================================
+   MESSAGE
+========================================================= */
 
-return (
-<div
-className={`flex items-start gap-3 ${
+function Message({ message }) {
+  const isUser =
+    message.role === "user";
+
+  return (
+    <div
+      className={`flex gap-3 ${
         isUser
           ? "justify-end"
           : "justify-start"
       }`}
->
-{!isUser && ( <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 text-white shadow-md shadow-violet-500/10"> <Bot size={17} /> </div>
-)}
-
-
-  <div
-    className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 sm:max-w-[76%] ${
-      isUser
-        ? "rounded-br-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/10"
-        : message.isError
-          ? "rounded-bl-md border border-red-500/20 bg-red-500/5 text-red-400"
-          : "rounded-bl-md border border-[var(--mentra-border)] bg-[var(--mentra-surface)] text-[var(--mentra-text)] shadow-sm"
-    }`}
-  >
-    {message.type === "image" ? (
-      <div className="overflow-hidden rounded-xl">
-        <div className="relative">
-          <img
-            src={message.image}
-            alt="AI generated visual"
-            className="block max-h-[560px] w-full rounded-xl object-cover"
-          />
-
-          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1.5 text-[10px] font-black text-white backdrop-blur-md">
-            <Sparkles size={11} />
-            AI Visual
-          </span>
-        </div>
-      </div>
-    ) : (
-      <div className="whitespace-pre-wrap break-words">
-        {message.content}
-      </div>
-    )}
-  </div>
-
-  {isUser && (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--mentra-surface)] text-[var(--mentra-text-muted)]">
-      <User size={17} />
-    </div>
-  )}
-</div>
-
-
-);
-}
-
-function TypingIndicator() {
-return ( <div className="flex items-center gap-3"> <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 text-white"> <Bot size={17} /> </div>
-
-
-  <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-[var(--mentra-border)] bg-[var(--mentra-surface)] px-4 py-3.5">
-    <span className="h-2 w-2 animate-bounce rounded-full bg-violet-400 [animation-delay:-0.3s]" />
-    <span className="h-2 w-2 animate-bounce rounded-full bg-indigo-400 [animation-delay:-0.15s]" />
-    <span className="h-2 w-2 animate-bounce rounded-full bg-cyan-400" />
-  </div>
-</div>
-
-
-);
-}
-
-function ImageLoading() {
-return ( <div className="flex items-center gap-3"> <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-500 text-white"> <Sparkles size={17} /> </div>
-
-
-  <div className="flex items-center gap-2 rounded-2xl rounded-bl-md border border-[var(--mentra-border)] bg-[var(--mentra-surface)] px-4 py-3 text-xs font-bold text-[var(--mentra-text-muted)]">
-    <Loader2
-      size={14}
-      className="animate-spin text-violet-400"
-    />
-    Creating your visual...
-  </div>
-</div>
-
-
-);
-}
-
-function QuizView({
-quiz,
-loading,
-error,
-currentQuestionIndex,
-selectedAnswer,
-submitting,
-onSelectAnswer,
-onNext,
-onSubmit,
-onRetry,
-onExit,
-}) {
-if (loading) {
-return ( <div className="flex min-h-[620px] flex-1 items-center justify-center rounded-[28px] border border-[var(--mentra-border)] bg-[var(--mentra-surface-2)] p-6"> <div className="w-full max-w-md text-center"> <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-[30px] bg-gradient-to-br from-violet-500/10 to-cyan-500/10"> <div className="absolute inset-0 animate-pulse rounded-[30px] bg-violet-500/10" />
-
-
-        <Loader2
-          size={34}
-          className="relative animate-spin text-violet-400"
-        />
-      </div>
-
-      <p className="mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-violet-400">
-        AI Quiz
-      </p>
-
-      <h2 className="mt-2 text-2xl font-black text-[var(--mentra-text)]">
-        Preparing your challenge
-      </h2>
-
-      <p className="mt-3 text-sm leading-6 text-[var(--mentra-text-muted)]">
-        Mentra is using your current lesson to
-        build questions that test your
-        understanding.
-      </p>
-    </div>
-  </div>
-);
-
-
-}
-
-if (error) {
-return ( <div className="flex min-h-[620px] flex-1 items-center justify-center rounded-[28px] border border-[var(--mentra-border)] bg-[var(--mentra-surface-2)] p-5 sm:p-8"> <div className="w-full max-w-lg rounded-[28px] border border-red-500/20 bg-red-500/5 p-7 text-center sm:p-8"> <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10 text-red-400"> <XCircle size={30} /> </div>
-
-
-      <p className="mt-5 text-[10px] font-black uppercase tracking-[0.2em] text-red-400">
-        Quiz error
-      </p>
-
-      <h2 className="mt-2 text-2xl font-black text-[var(--mentra-text)]">
-        We couldn't prepare your quiz
-      </h2>
-
-      <p className="mt-3 text-sm leading-6 text-red-400">
-        {error}
-      </p>
-
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-        <button
-          type="button"
-          onClick={onRetry}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-black text-white transition hover:bg-violet-500"
-        >
-          <RotateCcw size={16} />
-          Try again
-        </button>
-
-        <button
-          type="button"
-          onClick={onExit}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--mentra-border)] px-5 py-3 text-sm font-black text-[var(--mentra-text-muted)] transition hover:text-[var(--mentra-text)]"
-        >
-          Back to Mentor
-        </button>
-      </div>
-    </div>
-  </div>
-);
-
-}
-
-if (!quiz) return null;
-
-const questions = quiz.questions || [];
-const question =
-questions[currentQuestionIndex];
-
-if (!question) return null;
-
-const options = getQuizOptions(question);
-const number = currentQuestionIndex + 1;
-const total = questions.length;
-const progress = (number / total) * 100;
-const isLast = number === total;
-
-return ( <section className="flex min-h-[620px] flex-1 flex-col rounded-[28px] border border-[var(--mentra-border)] bg-[var(--mentra-surface-2)] p-4 sm:p-6 lg:p-8"> <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center"> <div className="mb-5 flex items-end justify-between gap-4"> <div className="min-w-0"> <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-violet-400"> <Brain size={15} />
-Quiz Mode </div>
-
-
-        <h2 className="mt-1 truncate text-lg font-black text-[var(--mentra-text)] sm:text-xl">
-          {quiz.lessonTitle}
-        </h2>
-      </div>
-
-      <div className="shrink-0 rounded-full border border-[var(--mentra-border)] bg-[var(--mentra-surface)] px-3 py-1.5 text-xs font-black text-[var(--mentra-text)] sm:px-4 sm:py-2 sm:text-sm">
-        {number} / {total}
-      </div>
-    </div>
-
-    <div className="mb-6 h-2 overflow-hidden rounded-full bg-[var(--mentra-surface)]">
-      <div
-        className="h-full rounded-full bg-gradient-to-r from-violet-600 to-cyan-500 transition-all duration-500"
-        style={{
-          width: `${progress}%`,
-        }}
-      />
-    </div>
-
-    <div className="rounded-[28px] border border-[var(--mentra-border)] bg-[var(--mentra-surface)] p-5 shadow-xl shadow-black/5 sm:p-7 lg:p-8">
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-sm font-black text-violet-400">
-          {number}
-        </div>
-
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-wider text-violet-400">
-            Test your understanding
-          </p>
-
-          <h3 className="mt-2 text-xl font-black leading-8 text-[var(--mentra-text)] sm:text-2xl">
-            {question.question}
-          </h3>
-        </div>
-      </div>
-
-      <div className="mt-7 grid gap-3">
-        {options.map((option) => {
-          const selected =
-            selectedAnswer ===
-            option.number;
-
-          return (
-            <button
-              key={option.number}
-              type="button"
-              onClick={() =>
-                onSelectAnswer(
-                  option.number
-                )
-              }
-              disabled={submitting}
-              className={`group flex w-full items-center gap-3 rounded-2xl border p-3.5 text-left transition-all sm:gap-4 sm:p-4 ${
-                selected
-                  ? "border-violet-500/60 bg-violet-500/10 shadow-md shadow-violet-500/5"
-                  : "border-[var(--mentra-border)] bg-[var(--mentra-surface-2)] hover:-translate-y-0.5 hover:border-violet-500/30 hover:bg-violet-500/5"
-              }`}
-            >
-              <span
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-sm font-black transition ${
-                  selected
-                    ? "border-violet-500 bg-violet-600 text-white"
-                    : "border-[var(--mentra-border)] bg-[var(--mentra-surface)] text-[var(--mentra-text-muted)] group-hover:text-violet-400"
-                }`}
-              >
-                {option.letter}
-              </span>
-
-              <span
-                className={`flex-1 text-sm leading-6 ${
-                  selected
-                    ? "font-bold text-[var(--mentra-text)]"
-                    : "font-medium text-[var(--mentra-text-muted)]"
-                }`}
-              >
-                {option.text}
-              </span>
-
-              {selected && (
-                <CheckCircle2
-                  size={19}
-                  className="shrink-0 text-violet-400"
-                />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {options.length === 0 && (
-        <div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-400">
-          This question has no readable answer
-          choices.
+    >
+      {!isUser && (
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10">
+          <Bot className="h-4 w-4 text-emerald-500" />
         </div>
       )}
 
-      <div className="mt-7 flex items-center justify-between gap-3 border-t border-[var(--mentra-border)] pt-5">
-        <p className="hidden text-[10px] font-bold uppercase tracking-wider text-[var(--mentra-text-muted)] sm:block">
-          Select one answer
+      <div
+        className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-6 ${
+          isUser
+            ? "bg-emerald-500 text-white"
+            : "bg-zinc-100 text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+        }`}
+      >
+        {message.type === "image" ? (
+          <img
+            src={message.content}
+            alt="Mentor generated visual"
+            className="max-w-full rounded-xl"
+          />
+        ) : (
+          message.content
+        )}
+      </div>
+
+      {isUser && (
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800">
+          <User className="h-4 w-4 text-zinc-500" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================
+   TYPING
+========================================================= */
+
+function TypingIndicator() {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10">
+        <Bot className="h-4 w-4 text-emerald-500" />
+      </div>
+
+      <div className="rounded-2xl bg-zinc-100 px-4 py-3 dark:bg-zinc-900">
+        <div className="flex gap-1">
+          <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400" />
+          <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:150ms]" />
+          <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:300ms]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   IMAGE LOADING
+========================================================= */
+
+function ImageLoading() {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10">
+        <Wand2 className="h-4 w-4 text-emerald-500" />
+      </div>
+
+      <div className="flex items-center gap-2 rounded-2xl bg-zinc-100 px-4 py-3 text-sm text-zinc-500 dark:bg-zinc-900">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Generating visual...
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   QUIZ VIEW
+========================================================= */
+
+function QuizView({
+  quiz,
+  loading,
+  error,
+  currentQuestion,
+  selectedAnswer,
+  setSelectedAnswer,
+  onNext,
+  onSubmit,
+  onExit,
+  submitting,
+}) {
+  if (loading) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-10 w-10 animate-spin text-emerald-500" />
+
+          <h2 className="mt-5 text-xl font-bold text-zinc-900 dark:text-white">
+            Preparing your quiz
+          </h2>
+
+          <p className="mt-2 text-sm text-zinc-500">
+            Getting your current lesson and generating
+            questions...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="max-w-md text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10">
+            <XCircle className="h-8 w-8 text-red-500" />
+          </div>
+
+          <h2 className="mt-5 text-xl font-bold text-zinc-900 dark:text-white">
+            Quiz could not be loaded
+          </h2>
+
+          <p className="mt-2 text-sm text-zinc-500">
+            {error}
+          </p>
+
+          <button
+            onClick={onExit}
+            className="mt-6 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white"
+          >
+            Back to Mentor
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!quiz?.questions?.length) {
+    return null;
+  }
+
+  const question =
+    quiz.questions[currentQuestion];
+
+  const isLast =
+    currentQuestion ===
+    quiz.questions.length - 1;
+
+  const progress =
+    ((currentQuestion + 1) /
+      quiz.questions.length) *
+    100;
+
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col py-8">
+      <div className="mb-8 flex items-center justify-between">
+        <button
+          onClick={onExit}
+          className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Exit quiz
+        </button>
+
+        <span className="text-sm font-medium text-zinc-500">
+          {currentQuestion + 1} /{" "}
+          {quiz.questions.length}
+        </span>
+      </div>
+
+      <div className="mb-8">
+        <div className="mb-3 flex items-center justify-between text-xs text-zinc-500">
+          <span>
+            {quiz.lessonTitle}
+          </span>
+
+          <span>
+            {Math.round(progress)}%
+          </span>
+        </div>
+
+        <div className="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+          <div
+            className="h-full rounded-full bg-emerald-500 transition-all"
+            style={{
+              width: `${progress}%`,
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-8">
+        <p className="text-xs font-semibold uppercase tracking-wider text-emerald-500">
+          Question {currentQuestion + 1}
         </p>
 
-        {/*
-         * CRITICAL FIX:
-         *
-         * Last question -> onSubmit
-         * Other questions -> onNext
-         *
-         * The displayed text and the executed function
-         * now always match.
-         */}
+        <h2 className="mt-4 text-xl font-bold leading-8 text-zinc-900 dark:text-white sm:text-2xl">
+          {question.question}
+        </h2>
+
+        <div className="mt-7 space-y-3">
+          {question.options.map(
+            (option, index) => {
+              const optionNumber =
+                index + 1;
+
+              const selected =
+                selectedAnswer ===
+                optionNumber;
+
+              return (
+                <button
+                  key={optionNumber}
+                  onClick={() =>
+                    setSelectedAnswer(
+                      optionNumber
+                    )
+                  }
+                  className={`flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition ${
+                    selected
+                      ? "border-emerald-500 bg-emerald-500/10"
+                      : "border-zinc-200 hover:border-emerald-500/40 dark:border-zinc-800 dark:hover:border-emerald-500/40"
+                  }`}
+                >
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-semibold ${
+                      selected
+                        ? "bg-emerald-500 text-white"
+                        : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800"
+                    }`}
+                  >
+                    {String.fromCharCode(
+                      65 + index
+                    )}
+                  </span>
+
+                  <span className="text-sm leading-6 text-zinc-800 dark:text-zinc-200">
+                    {option}
+                  </span>
+                </button>
+              );
+            }
+          )}
+        </div>
+      </div>
+
+      <div className="mt-6 flex justify-end">
         <button
-          type="button"
           onClick={
             isLast
               ? onSubmit
@@ -1372,303 +1441,164 @@ Quiz Mode </div>
           }
           disabled={
             selectedAnswer === null ||
-            submitting ||
-            options.length === 0
+            submitting
           }
-          className="ml-auto inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-violet-500/20 transition hover:-translate-y-0.5 hover:from-violet-500 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
+          className="flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? (
             <>
-              <Loader2
-                size={16}
-                className="animate-spin"
-              />
+              <Loader2 className="h-4 w-4 animate-spin" />
               Submitting...
             </>
           ) : isLast ? (
             <>
-              <Trophy size={16} />
               Submit Quiz
+              <CheckCircle2 className="h-4 w-4" />
             </>
           ) : (
             <>
-              Next Question
-              <ArrowRight size={16} />
+              Next
+              <ArrowRight className="h-4 w-4" />
             </>
           )}
         </button>
       </div>
     </div>
-  </div>
-</section>
-
-
-);
+  );
 }
+
+/* =========================================================
+   QUIZ RESULTS
+========================================================= */
 
 function QuizResults({
-result,
-quiz,
-onRestart,
-onExit,
+  result,
+  onRestart,
+  onBack,
 }) {
-const percentage =
-Number(result?.percentage ?? 0) || 0;
+  const score =
+    result?.score ??
+    result?.correct ??
+    0;
 
-const score =
-Number(result?.score ?? 0) || 0;
+  const total =
+    result?.total ??
+    result?.totalQuestions ??
+    0;
 
-const total =
-Number(
-result?.totalQuestions ??
-quiz?.questions?.length ??
-0
-) || 0;
+  const percentage =
+    result?.percentage ??
+    (total
+      ? Math.round(
+          (score / total) * 100
+        )
+      : 0);
 
-const xpEarned =
-Number(result?.xpEarned ?? 0) || 0;
+  const xp =
+    result?.xpEarned ??
+    result?.xp ??
+    0;
 
-const level = result?.level ?? 1;
-const streak = result?.streak ?? 0;
+  const level =
+    result?.level ??
+    1;
 
-const achievements =
-result?.unlockedAchievements || [];
+  const streak =
+    result?.streak ??
+    0;
 
-const review = result?.results || [];
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-1 items-center justify-center py-10">
+      <div className="w-full text-center">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-500/10">
+          <Trophy className="h-10 w-10 text-emerald-500" />
+        </div>
 
-const passed = percentage >= 70;
+        <h2 className="mt-6 text-3xl font-bold text-zinc-900 dark:text-white">
+          Quiz Complete!
+        </h2>
 
-return ( <section className="flex min-h-[620px] flex-1 overflow-y-auto rounded-[28px] border border-[var(--mentra-border)] bg-[var(--mentra-surface-2)] p-4 sm:p-6 lg:p-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"> <div className="mx-auto w-full max-w-3xl"> <div className="rounded-[28px] border border-[var(--mentra-border)] bg-[var(--mentra-surface)] p-6 text-center shadow-xl shadow-black/5 sm:p-8"> <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-[30px] bg-gradient-to-br from-violet-600 to-cyan-500 text-white shadow-2xl shadow-violet-500/20"> <Trophy size={40} /> </div>
+        <p className="mt-2 text-sm text-zinc-500">
+          Great work. Here's how you did.
+        </p>
 
+        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <ResultCard
+            icon={Target}
+            label="Score"
+            value={`${score}/${total}`}
+          />
 
-      <p className="mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-violet-400">
-        Quiz Complete
-      </p>
+          <ResultCard
+            icon={Trophy}
+            label="Percentage"
+            value={`${percentage}%`}
+          />
 
-      <h2 className="mt-2 text-5xl font-black tracking-tight text-[var(--mentra-text)]">
-        {percentage}%
-      </h2>
+          <ResultCard
+            icon={Zap}
+            label="XP"
+            value={`+${xp}`}
+          />
 
-      <p className="mt-3 text-sm text-[var(--mentra-text-muted)]">
-        {passed
-          ? "Excellent work. You are building strong understanding."
-          : "Good effort. Review the explanations and try again."}
-      </p>
+          <ResultCard
+            icon={Flame}
+            label="Streak"
+            value={streak}
+          />
+        </div>
 
-      <p className="mt-2 text-xs text-[var(--mentra-text-muted)]">
-        {score} out of {total} questions
-        correct.
-      </p>
+        <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-xs text-zinc-500">
+            Current Level
+          </p>
 
-      <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <ResultStat
-          value={`+${xpEarned}`}
-          label="XP Earned"
-          icon={Zap}
-        />
+          <p className="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">
+            Level {level}
+          </p>
+        </div>
 
-        <ResultStat
-          value={level}
-          label="Level"
-          icon={GraduationCap}
-        />
+        <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+          <button
+            onClick={onRestart}
+            className="flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-600"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Try Again
+          </button>
 
-        <ResultStat
-          value={`${streak} 🔥`}
-          label="Streak"
-          icon={Flame}
-        />
-
-        <ResultStat
-          value={`${score}/${total}`}
-          label="Score"
-          icon={Target}
-        />
+          <button
+            onClick={onBack}
+            className="rounded-xl border border-zinc-200 px-5 py-3 text-sm font-semibold text-zinc-700 dark:border-zinc-800 dark:text-zinc-200"
+          >
+            Back to Mentor
+          </button>
+        </div>
       </div>
     </div>
-
-    {achievements.length > 0 && (
-      <div className="mt-4 rounded-[28px] border border-[var(--mentra-border)] bg-[var(--mentra-surface)] p-5 sm:p-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-500/10 text-yellow-400">
-            <Trophy size={18} />
-          </div>
-
-          <div>
-            <h3 className="text-sm font-black text-[var(--mentra-text)]">
-              Achievement unlocked
-            </h3>
-
-            <p className="text-xs text-[var(--mentra-text-muted)]">
-              Keep learning to unlock more.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          {achievements.map(
-            (achievement, index) => (
-              <div
-                key={
-                  achievement?.id ||
-                  achievement?.name ||
-                  index
-                }
-                className="rounded-xl bg-yellow-500/5 px-4 py-3 text-sm font-bold text-yellow-400"
-              >
-                {achievement?.name ||
-                  achievement?.title ||
-                  "New Achievement"}
-              </div>
-            )
-          )}
-        </div>
-      </div>
-    )}
-
-    {review.length > 0 && (
-      <div className="mt-4 rounded-[28px] border border-[var(--mentra-border)] bg-[var(--mentra-surface)] p-5 sm:p-6">
-        <h3 className="text-lg font-black text-[var(--mentra-text)]">
-          Review your answers
-        </h3>
-
-        <div className="mt-5 space-y-3">
-          {review.map((item, index) => (
-            <div
-              key={
-                item?.questionId ||
-                index
-              }
-              className={`rounded-2xl border p-4 ${
-                item?.isCorrect
-                  ? "border-emerald-500/20 bg-emerald-500/5"
-                  : "border-red-500/20 bg-red-500/5"
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                {item?.isCorrect ? (
-                  <CheckCircle2
-                    size={19}
-                    className="mt-0.5 shrink-0 text-emerald-400"
-                  />
-                ) : (
-                  <XCircle
-                    size={19}
-                    className="mt-0.5 shrink-0 text-red-400"
-                  />
-                )}
-
-                <div className="min-w-0">
-                  <p className="text-sm font-bold leading-6 text-[var(--mentra-text)]">
-                    {index + 1}.{" "}
-                    {item?.question}
-                  </p>
-
-                  <p className="mt-2 text-xs text-[var(--mentra-text-muted)]">
-                    Your answer:{" "}
-                    {getReviewAnswer(
-                      item
-                    )}
-                  </p>
-
-                  {!item?.isCorrect && (
-                    <p className="mt-1 text-xs text-emerald-400">
-                      Correct answer:{" "}
-                      {getReviewCorrectAnswer(
-                        item
-                      )}
-                    </p>
-                  )}
-
-                  {item?.explanation && (
-                    <p className="mt-3 border-t border-[var(--mentra-border)] pt-3 text-xs leading-5 text-[var(--mentra-text-muted)]">
-                      <strong className="text-[var(--mentra-text)]">
-                        Why:
-                      </strong>{" "}
-                      {item.explanation}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    )}
-
-    <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-      <button
-        type="button"
-        onClick={onRestart}
-        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-3 text-sm font-black text-white shadow-lg shadow-violet-500/20 transition hover:-translate-y-0.5"
-      >
-        <RotateCcw size={17} />
-        Try Again
-      </button>
-
-      <button
-        type="button"
-        onClick={onExit}
-        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--mentra-border)] bg-[var(--mentra-surface)] px-6 py-3 text-sm font-black text-[var(--mentra-text-muted)] transition hover:text-[var(--mentra-text)]"
-      >
-        <MessageSquare size={17} />
-        Back to Mentor
-      </button>
-    </div>
-  </div>
-</section>
-
-
-);
+  );
 }
 
-function ResultStat({
-value,
-label,
-icon: Icon,
+/* =========================================================
+   RESULT CARD
+========================================================= */
+
+function ResultCard({
+  icon: Icon,
+  label,
+  value,
 }) {
-return ( <div className="rounded-2xl border border-[var(--mentra-border)] bg-[var(--mentra-surface-2)] p-4 text-left"> <div className="flex items-center justify-between gap-2"> <p className="text-xl font-black text-[var(--mentra-text)]">
-{value} </p>
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+      <Icon className="mx-auto h-5 w-5 text-emerald-500" />
 
+      <p className="mt-2 text-xs text-zinc-500">
+        {label}
+      </p>
 
-    <Icon
-      size={15}
-      className="text-violet-400"
-    />
-  </div>
-
-  <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-[var(--mentra-text-muted)]">
-    {label}
-  </p>
-</div>
-
-);
-}
-
-function getReviewAnswer(item) {
-const answers = {
-1: item?.optionA,
-2: item?.optionB,
-3: item?.optionC,
-4: item?.optionD,
-};
-
-return (
-answers[item?.selectedAnswer] ||
-"Not answered"
-);
-}
-
-function getReviewCorrectAnswer(item) {
-const answers = {
-1: item?.optionA,
-2: item?.optionB,
-3: item?.optionC,
-4: item?.optionD,
-};
-
-return (
-answers[item?.correctAnswer] ||
-"Unknown"
-);
+      <p className="mt-1 text-lg font-bold text-zinc-900 dark:text-white">
+        {value}
+      </p>
+    </div>
+  );
 }

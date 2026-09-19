@@ -1,32 +1,34 @@
 
 import axios from "axios";
 
-const API_URL =
-  "http://localhost:5000/api/ai-mentor";
+const API_URL = "http://localhost:5000/api/ai-mentor";
 
-export async function sendMentorMessage(
-  message,
-  getToken
-) {
+async function getAuthToken(getToken) {
   if (!getToken) {
-    throw new Error(
-      "Clerk getToken is not available."
-    );
+    throw new Error("Clerk getToken is not available.");
   }
 
   const token = await getToken();
 
+  console.log("🔐 CLERK TOKEN CHECK:", {
+    exists: !!token,
+    length: token?.length || 0,
+    tokenType: token ? typeof token : "none",
+  });
+
   if (!token) {
     throw new Error(
-      "Clerk authentication token was not generated."
+      "Clerk authentication token was not generated. Make sure the user is fully signed in."
     );
   }
 
-  console.log(
-    "🔑 Global Mentor token generated:",
-    token.length,
-    "characters"
-  );
+  return token;
+}
+
+export async function sendMentorMessage(message, getToken) {
+  const token = await getAuthToken(getToken);
+
+  console.log("🌐 MENTOR CHAT REQUEST");
 
   const response = await axios.post(
     `${API_URL}/chat`,
@@ -44,27 +46,10 @@ export async function sendMentorMessage(
   return response.data;
 }
 
-export async function generateMentorImage(
-  prompt,
-  getToken
-) {
-  if (!getToken) {
-    throw new Error(
-      "Clerk getToken is not available."
-    );
-  }
+export async function generateMentorImage(prompt, getToken) {
+  const token = await getAuthToken(getToken);
 
-  const token = await getToken();
-
-  if (!token) {
-    throw new Error(
-      "Clerk authentication token was not generated."
-    );
-  }
-
-  console.log(
-    "🎨 Generating Mentor image..."
-  );
+  console.log("🌐 MENTOR IMAGE REQUEST");
 
   const response = await axios.post(
     `${API_URL}/image`,
