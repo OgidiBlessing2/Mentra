@@ -18,7 +18,9 @@ import flashcardRoutes from "./routes/flashcard.routes.js";
 import quizRoutes from "./routes/quiz.route.js";
 import globalMentorRoutes from "./routes/globalMentor.routes.js"
 import { clerkMiddleware } from "@clerk/express";
+import userRoutes from "./routes/user.routes.js";
 // import { startJobs } from "./jobs/index.js";
+
 
 dotenv.config();
 
@@ -62,6 +64,8 @@ app.use(clerkMiddleware());
 /* =========================
    ROUTES
 ========================= */
+
+app.use("/api/users", userRoutes);
 
 app.use("/api/health", healthRoutes);
 
