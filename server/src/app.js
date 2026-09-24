@@ -26,6 +26,9 @@ dotenv.config();
 
 const app = express();
 
+
+
+
 /* =========================
    REQUEST LOGGER
 ========================= */
@@ -45,6 +48,8 @@ app.use(
     credentials: true,
   })
 );
+
+
 
 app.use(express.json());
 
