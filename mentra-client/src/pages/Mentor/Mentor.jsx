@@ -1170,21 +1170,17 @@ function WelcomeState({ onPrompt }) {
     </div>
   );
 }
-
 /* =========================================================
    MESSAGE
 ========================================================= */
 
 function Message({ message }) {
-  const isUser =
-    message.role === "user";
+  const isUser = message.role === "user";
 
   return (
     <div
       className={`flex gap-3 ${
-        isUser
-          ? "justify-end"
-          : "justify-start"
+        isUser ? "justify-end" : "justify-start"
       }`}
     >
       {!isUser && (
@@ -1194,7 +1190,7 @@ function Message({ message }) {
       )}
 
       <div
-        className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-6 ${
+        className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm sm:max-w-[80%] ${
           isUser
             ? "bg-emerald-500 text-white"
             : "bg-zinc-100 text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
@@ -1206,8 +1202,12 @@ function Message({ message }) {
             alt="Mentor generated visual"
             className="max-w-full rounded-xl"
           />
+        ) : isUser ? (
+          <div className="whitespace-pre-wrap break-words leading-6">
+            {message.content}
+          </div>
         ) : (
-          message.content
+          <MentorResponse content={message.content} />
         )}
       </div>
 
@@ -1221,6 +1221,325 @@ function Message({ message }) {
 }
 
 /* =========================================================
+   BEAUTIFUL AI RESPONSE
+========================================================= */
+
+function MentorResponse({ content }) {
+  if (!content) return null;
+
+  const lines = String(content)
+    .replace(/\r\n/g, "\n")
+    .split("\n");
+
+  const elements = [];
+
+  let paragraph = [];
+  let codeLines = [];
+  let insideCodeBlock = false;
+
+  const flushParagraph = () => {
+    if (!paragraph.length) return;
+
+    const text = paragraph.join(" ").trim();
+
+    if (text) {
+      elements.push({
+        type: "paragraph",
+        content: text,
+      });
+    }
+
+    paragraph = [];
+  };
+
+  const flushCode = () => {
+    if (!codeLines.length) return;
+
+    elements.push({
+      type: "code",
+      content: codeLines.join("\n"),
+    });
+
+    codeLines = [];
+  };
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+
+    /* ---------------------------------------------
+       CODE BLOCK
+    --------------------------------------------- */
+
+    if (trimmed.startsWith("```")) {
+      if (insideCodeBlock) {
+        flushCode();
+        insideCodeBlock = false;
+      } else {
+        flushParagraph();
+        insideCodeBlock = true;
+      }
+
+      return;
+    }
+
+    if (insideCodeBlock) {
+      codeLines.push(line);
+      return;
+    }
+
+    /* ---------------------------------------------
+       EMPTY LINE = NEW PARAGRAPH
+    --------------------------------------------- */
+
+    if (!trimmed) {
+      flushParagraph();
+      return;
+    }
+
+    /* ---------------------------------------------
+       HEADINGS
+    --------------------------------------------- */
+
+    if (
+      trimmed.startsWith("# ") ||
+      trimmed.startsWith("## ") ||
+      trimmed.startsWith("### ")
+    ) {
+      flushParagraph();
+
+      const heading = trimmed
+        .replace(/^###\s*/, "")
+        .replace(/^##\s*/, "")
+        .replace(/^#\s*/, "");
+
+      elements.push({
+        type: "heading",
+        content: heading,
+      });
+
+      return;
+    }
+
+    /* ---------------------------------------------
+       BULLET POINTS
+    --------------------------------------------- */
+
+    if (
+      trimmed.startsWith("- ") ||
+      trimmed.startsWith("* ") ||
+      trimmed.startsWith("• ")
+    ) {
+      flushParagraph();
+
+      elements.push({
+        type: "bullet",
+        content: trimmed
+          .replace(/^[-*•]\s+/, ""),
+      });
+
+      return;
+    }
+
+    /* ---------------------------------------------
+       NUMBERED LIST
+    --------------------------------------------- */
+
+    const numberedMatch =
+      trimmed.match(/^(\d+)[.)]\s+(.*)$/);
+
+    if (numberedMatch) {
+      flushParagraph();
+
+      elements.push({
+        type: "number",
+        number: numberedMatch[1],
+        content: numberedMatch[2],
+      });
+
+      return;
+    }
+
+    /* ---------------------------------------------
+       NORMAL TEXT
+    --------------------------------------------- */
+
+    paragraph.push(trimmed);
+
+    /* ---------------------------------------------
+       LAST LINE
+    --------------------------------------------- */
+
+    if (index === lines.length - 1) {
+      flushParagraph();
+    }
+  });
+
+  if (insideCodeBlock) {
+    flushCode();
+  }
+
+  return (
+    <div className="min-w-0 space-y-4 leading-7">
+      {elements.map((element, index) => {
+        /* -----------------------------------------
+           PARAGRAPH
+        ----------------------------------------- */
+
+        if (element.type === "paragraph") {
+          return (
+            <p
+              key={index}
+              className="break-words"
+            >
+              <FormattedText text={element.content} />
+            </p>
+          );
+        }
+
+        /* -----------------------------------------
+           HEADING
+        ----------------------------------------- */
+
+        if (element.type === "heading") {
+          return (
+            <h3
+              key={index}
+              className="pt-1 text-base font-bold text-zinc-900 dark:text-white"
+            >
+              <FormattedText text={element.content} />
+            </h3>
+          );
+        }
+
+        /* -----------------------------------------
+           BULLET
+        ----------------------------------------- */
+
+        if (element.type === "bullet") {
+          return (
+            <div
+              key={index}
+              className="flex items-start gap-3"
+            >
+              <span className="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+
+              <p className="min-w-0 flex-1 break-words">
+                <FormattedText
+                  text={element.content}
+                />
+              </p>
+            </div>
+          );
+        }
+
+        /* -----------------------------------------
+           NUMBERED
+        ----------------------------------------- */
+
+        if (element.type === "number") {
+          return (
+            <div
+              key={index}
+              className="flex items-start gap-3"
+            >
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-xs font-bold text-emerald-500">
+                {element.number}
+              </span>
+
+              <p className="min-w-0 flex-1 break-words">
+                <FormattedText
+                  text={element.content}
+                />
+              </p>
+            </div>
+          );
+        }
+
+        /* -----------------------------------------
+           CODE BLOCK
+        ----------------------------------------- */
+
+        if (element.type === "code") {
+          return (
+            <div
+              key={index}
+              className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-950 dark:border-zinc-700"
+            >
+              <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
+                <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/80" />
+                <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
+
+                <span className="ml-2 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+                  Code
+                </span>
+              </div>
+
+              <pre className="overflow-x-auto p-4 text-xs leading-6 text-zinc-200">
+                <code>{element.content}</code>
+              </pre>
+            </div>
+          );
+        }
+
+        return null;
+      })}
+    </div>
+  );
+}
+
+
+/* =========================================================
+   INLINE TEXT FORMATTER
+========================================================= */
+
+function FormattedText({ text }) {
+  const parts = String(text).split(
+    /(`[^`]+`|\*\*[^*]+\*\*)/g
+  );
+
+  return parts.map((part, index) => {
+    /* Inline code */
+
+    if (
+      part.startsWith("`") &&
+      part.endsWith("`")
+    ) {
+      return (
+        <code
+          key={index}
+          className="rounded-md bg-zinc-200 px-1.5 py-0.5 font-mono text-[0.85em] text-emerald-600 dark:bg-zinc-800 dark:text-emerald-400"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+
+    /* Bold */
+
+    if (
+      part.startsWith("**") &&
+      part.endsWith("**")
+    ) {
+      return (
+        <strong
+          key={index}
+          className="font-semibold text-zinc-950 dark:text-white"
+        >
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+
+    return (
+      <span key={index}>
+        {part}
+      </span>
+    );
+  });
+}
+/* =========================================================
+ 
    TYPING
 ========================================================= */
 

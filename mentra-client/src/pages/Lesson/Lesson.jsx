@@ -130,20 +130,41 @@ async function handleSaveFlashcard(e) {
     onSuccess: (response) => {
       console.log("✅ Lesson completed:", response);
 
-      const nextLessonId = response?.nextLesson?.id;
+      // Backend controller puts the completion result inside response.lesson
+      const result = response?.lesson;
+
+      // 🎉 THE ENTIRE ROADMAP IS FINISHED
+      if (result?.roadmapCompleted) {
+        console.log(
+          "🎉 ROADMAP COMPLETED — returning to roadmap generator"
+        );
+
+        navigate("/onboarding");
+        return;
+      }
+
+      // ➡️ Move to the next lesson
+      const nextLessonId = result?.nextLesson?.id;
 
       if (nextLessonId) {
-        console.log("➡️ Loading next lesson:", nextLessonId);
+        console.log(
+          "➡️ Loading next lesson:",
+          nextLessonId
+        );
 
         navigate(`/lessons/${nextLessonId}`);
         return;
       }
 
+      // Fallback
       navigate("/dashboard");
     },
 
     onError: (error) => {
-      console.error("❌ Failed to complete lesson:", error);
+      console.error(
+        "❌ Failed to complete lesson:",
+        error
+      );
     },
   });
 }

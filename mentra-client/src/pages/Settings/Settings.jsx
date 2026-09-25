@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { useClerk, useUser } from "@clerk/clerk-react";
+import {
+  useAuth,
+  useClerk,
+  useUser,
+} from "@clerk/clerk-react";
 import {
   User,
   Palette,
@@ -27,8 +31,8 @@ import {
 import DashboardLayout from "../../layout/DashboardLayout";
 import { useTheme } from "../../context/ThemeContext";
 
-const SETTINGS_STORAGE_KEY = "mentra-settings";
-const PROFILE_STORAGE_KEY = "mentra-profile";
+const SETTINGS_STORAGE_KEY =
+  "mentra-settings";
 
 const DEFAULT_SETTINGS = {
   lessonReminders: true,
@@ -38,19 +42,30 @@ const DEFAULT_SETTINGS = {
   learningReminders: true,
 };
 
-const DEFAULT_PROFILE = {
-  bio: "",
-};
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
 
 export default function Settings() {
-  const { user, isLoaded, isSignedIn } = useUser();
+  const {
+    user,
+    isLoaded,
+    isSignedIn,
+  } = useUser();
+
+  const {
+    getToken,
+  } = useAuth();
 
   const {
     signOut,
     openUserProfile,
   } = useClerk();
 
-  const { theme, setTheme } = useTheme();
+  const {
+    theme,
+    setTheme,
+  } = useTheme();
 
   /* =========================================================
      SETTINGS
@@ -84,95 +99,79 @@ export default function Settings() {
      PROFILE
   ========================================================= */
 
-  const [profile, setProfile] = useState(
-    DEFAULT_PROFILE
-  );
+  const [profileBio, setProfileBio] =
+    useState("");
 
-  const [isEditingProfile, setIsEditingProfile] =
-    useState(false);
+  const [
+    isLoadingProfile,
+    setIsLoadingProfile,
+  ] = useState(false);
 
-  const [profileForm, setProfileForm] = useState({
+  const [
+    isEditingProfile,
+    setIsEditingProfile,
+  ] = useState(false);
+
+  const [
+    profileForm,
+    setProfileForm,
+  ] = useState({
     firstName: "",
     lastName: "",
     username: "",
     bio: "",
   });
 
-  const [isSavingProfile, setIsSavingProfile] =
-    useState(false);
+  const [
+    isSavingProfile,
+    setIsSavingProfile,
+  ] = useState(false);
 
-  const [profileError, setProfileError] =
-    useState("");
+  const [
+    profileError,
+    setProfileError,
+  ] = useState("");
 
-  const [profileSuccess, setProfileSuccess] =
-    useState("");
+  const [
+    profileSuccess,
+    setProfileSuccess,
+  ] = useState("");
 
   /* =========================================================
      ACCOUNT
   ========================================================= */
 
-  const [accountError, setAccountError] =
-    useState("");
+  const [
+    accountError,
+    setAccountError,
+  ] = useState("");
 
-  const [isSigningOut, setIsSigningOut] =
-    useState(false);
+  const [
+    isSigningOut,
+    setIsSigningOut,
+  ] = useState(false);
 
   /* =========================================================
      DELETE ACCOUNT
   ========================================================= */
 
-  const [showDeleteConfirm, setShowDeleteConfirm] =
-    useState(false);
+  const [
+    showDeleteConfirm,
+    setShowDeleteConfirm,
+  ] = useState(false);
 
-  const [isDeletingAccount, setIsDeletingAccount] =
-    useState(false);
+  const [
+    isDeletingAccount,
+    setIsDeletingAccount,
+  ] = useState(false);
 
-  const [deleteError, setDeleteError] =
-    useState("");
-
-  /* =========================================================
-     LOAD PROFILE
-  ========================================================= */
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(
-        PROFILE_STORAGE_KEY
-      );
-
-      if (!saved) {
-        return;
-      }
-
-      setProfile({
-        ...DEFAULT_PROFILE,
-        ...JSON.parse(saved),
-      });
-    } catch (error) {
-      console.error(
-        "Failed to load Mentra profile:",
-        error
-      );
-    }
-  }, []);
+  const [
+    deleteError,
+    setDeleteError,
+  ] = useState("");
 
   /* =========================================================
-     LOAD CLERK PROFILE INTO FORM
-  ========================================================= */
-
-  useEffect(() => {
-    if (!user) return;
-
-    setProfileForm({
-      firstName: user.firstName || "",
-      lastName: user.lastName || "",
-      username: user.username || "",
-      bio: profile.bio || "",
-    });
-  }, [user, profile.bio]);
-
-  /* =========================================================
-     SAVE SETTINGS
+     LOAD SETTINGS
   ========================================================= */
 
   useEffect(() => {
@@ -204,35 +203,157 @@ export default function Settings() {
   }
 
   /* =========================================================
-     PROFILE EDIT
+     LOAD MENTRA PROFILE
   ========================================================= */
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !user) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadProfile() {
+      setIsLoadingProfile(true);
+      setProfileError("");
+
+      try {
+        const token = await getToken();
+
+        if (!token) {
+          throw new Error(
+            "Authentication token is not ready yet."
+          );
+        }
+
+        const response = await fetch(
+          `${API_BASE_URL}/users/profile`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data?.message ||
+              "Failed to load your profile."
+          );
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        const bio = data?.user?.bio || "";
+
+        setProfileBio(bio);
+
+        setProfileForm({
+          firstName:
+            user.firstName || "",
+          lastName:
+            user.lastName || "",
+          username:
+            user.username || "",
+          bio,
+        });
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        console.error(
+          "Failed to load Mentra profile:",
+          error
+        );
+
+        setProfileError(
+          error?.message ||
+            "Failed to load your profile."
+        );
+      } finally {
+        if (!cancelled) {
+          setIsLoadingProfile(false);
+        }
+      }
+    }
+
+    loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isLoaded,
+    isSignedIn,
+    user?.id,
+    getToken,
+  ]);
+
+  /* =========================================================
+     PROFILE FORM
+  ========================================================= */
+
+  useEffect(() => {
+    if (!user || isEditingProfile) {
+      return;
+    }
+
+    setProfileForm({
+      firstName:
+        user.firstName || "",
+      lastName:
+        user.lastName || "",
+      username:
+        user.username || "",
+      bio: profileBio,
+    });
+  }, [
+    user,
+    profileBio,
+    isEditingProfile,
+  ]);
 
   function handleEditProfile() {
     setProfileError("");
     setProfileSuccess("");
 
     setProfileForm({
-      firstName: user?.firstName || "",
-      lastName: user?.lastName || "",
-      username: user?.username || "",
-      bio: profile.bio || "",
+      firstName:
+        user?.firstName || "",
+      lastName:
+        user?.lastName || "",
+      username:
+        user?.username || "",
+      bio: profileBio || "",
     });
 
     setIsEditingProfile(true);
   }
 
   function handleCancelProfileEdit() {
-    if (isSavingProfile) return;
+    if (isSavingProfile) {
+      return;
+    }
 
     setIsEditingProfile(false);
     setProfileError("");
     setProfileSuccess("");
 
     setProfileForm({
-      firstName: user?.firstName || "",
-      lastName: user?.lastName || "",
-      username: user?.username || "",
-      bio: profile.bio || "",
+      firstName:
+        user?.firstName || "",
+      lastName:
+        user?.lastName || "",
+      username:
+        user?.username || "",
+      bio: profileBio || "",
     });
   }
 
@@ -246,6 +367,10 @@ export default function Settings() {
     }));
   }
 
+  /* =========================================================
+     SAVE PROFILE
+  ========================================================= */
+
   async function handleSaveProfile() {
     if (!user || isSavingProfile) {
       return;
@@ -256,26 +381,81 @@ export default function Settings() {
     setProfileSuccess("");
 
     try {
+      /*
+       * 1. Update Clerk profile
+       */
       await user.update({
         firstName:
           profileForm.firstName.trim(),
+
         lastName:
           profileForm.lastName.trim(),
+
         username:
           profileForm.username.trim() ||
           undefined,
       });
 
-      const updatedProfile = {
-        bio: profileForm.bio.trim(),
-      };
+      /*
+       * 2. Get a fresh token immediately
+       *    before calling the Mentra API.
+       */
+      const token = await getToken();
 
-      setProfile(updatedProfile);
+      if (!token) {
+        throw new Error(
+          "Authentication token is not ready. Please try again."
+        );
+      }
 
-      localStorage.setItem(
-        PROFILE_STORAGE_KEY,
-        JSON.stringify(updatedProfile)
+      /*
+       * 3. Save Mentra-owned profile data
+       *    to Neon.
+       */
+      const response = await fetch(
+        `${API_BASE_URL}/users/profile`,
+        {
+          method: "PUT",
+
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            username:
+              profileForm.username.trim() ||
+              null,
+
+            bio:
+              profileForm.bio.trim() ||
+              null,
+          }),
+        }
       );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message ||
+            "Failed to save your Mentra profile."
+        );
+      }
+
+      /*
+       * 4. Update local React state from
+       *    the successful database response.
+       */
+      const savedBio =
+        data?.user?.bio || "";
+
+      setProfileBio(savedBio);
+
+      setProfileForm((current) => ({
+        ...current,
+        bio: savedBio,
+      }));
 
       setProfileSuccess(
         "Profile updated successfully."
@@ -500,7 +680,18 @@ export default function Settings() {
               description="Manage your Mentra profile"
             />
 
-            {!isEditingProfile ? (
+            {isLoadingProfile ? (
+              <div className="flex items-center justify-center rounded-2xl bg-[var(--mentra-surface-2)] p-8">
+                <Loader2
+                  size={24}
+                  className="animate-spin text-violet-500"
+                />
+
+                <span className="ml-3 text-sm text-[var(--mentra-text-muted)]">
+                  Loading profile...
+                </span>
+              </div>
+            ) : !isEditingProfile ? (
               <>
                 <div className="flex flex-col gap-4 rounded-2xl bg-[var(--mentra-surface-2)] p-5 sm:flex-row sm:items-center sm:justify-between">
 
@@ -537,6 +728,12 @@ export default function Settings() {
                         {email}
                       </p>
 
+                      {profileBio && (
+                        <p className="mt-2 line-clamp-2 text-sm text-[var(--mentra-text-muted)]">
+                          {profileBio}
+                        </p>
+                      )}
+
                       <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                         Account connected
@@ -561,6 +758,15 @@ export default function Settings() {
                     <MessageBox
                       type="success"
                       message={profileSuccess}
+                    />
+                  </div>
+                )}
+
+                {profileError && (
+                  <div className="mt-4">
+                    <MessageBox
+                      type="error"
+                      message={profileError}
                     />
                   </div>
                 )}
@@ -720,14 +926,18 @@ export default function Settings() {
                 title="Dark"
                 description="Easy on the eyes in low light."
                 active={theme === "dark"}
-                onClick={() => setTheme("dark")}
+                onClick={() =>
+                  setTheme("dark")
+                }
               />
 
               <ThemeOption
                 title="Light"
                 description="A brighter, cleaner interface."
                 active={theme === "light"}
-                onClick={() => setTheme("light")}
+                onClick={() =>
+                  setTheme("light")
+                }
               />
             </div>
           </section>
@@ -803,8 +1013,6 @@ export default function Settings() {
 
             <div className="space-y-3">
 
-              {/* DAILY GOAL */}
-
               <div className="rounded-2xl border border-[var(--mentra-border)] bg-[var(--mentra-surface-2)] p-4">
 
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -869,8 +1077,6 @@ export default function Settings() {
                 </div>
 
               </div>
-
-              {/* LEARNING REMINDERS */}
 
               <SettingRow
                 icon={Clock3}
@@ -1133,8 +1339,10 @@ export default function Settings() {
           ========================= */}
 
           <p className="mt-8 text-center text-xs text-[var(--mentra-text-subtle)]">
-            Your preferences are saved automatically
-            on this device.
+            Learning preferences are saved
+            automatically on this device.
+            Profile information is securely
+            saved to your Mentra account.
           </p>
 
         </div>
@@ -1311,7 +1519,9 @@ function AccountRow({
 
           <p
             className={`truncate text-sm font-medium text-[var(--mentra-text)] ${
-              mono ? "font-mono text-xs" : ""
+              mono
+                ? "font-mono text-xs"
+                : ""
             }`}
           >
             {value}

@@ -1,79 +1,28 @@
-import axios from "axios";
 
-// Frontend API base URL.
-//
-// Local:
-// VITE_API_URL=http://localhost:5000/api
-//
-// Production:
-// VITE_API_URL=https://your-mentra-api.onrender.com/api
-const API_URL = `${import.meta.env.VITE_API_URL}/lessons`;
-
-// -----------------------------------------
-// Validate Authentication Token
-// -----------------------------------------
-function validateToken(token) {
-  if (!token) {
-    throw new Error(
-      "Authentication token is missing."
-    );
-  }
-
-  if (typeof token !== "string") {
-    throw new Error(
-      "Authentication token is invalid."
-    );
-  }
-}
+import api from "./axios";
 
 // -----------------------------------------
 // Get Lesson
 // -----------------------------------------
-export async function getLesson(id, token) {
+export async function getLesson(id) {
+  if (!id) {
+    throw new Error("Lesson ID is required.");
+  }
+
   try {
-    if (!id) {
-      throw new Error(
-        "Lesson ID is required."
-      );
-    }
+    console.log("📚 Getting lesson:", id);
 
-    validateToken(token);
+    const response = await api.get(`/lessons/${id}`);
 
-    console.log(
-      "📚 Getting lesson:",
-      id
-    );
-
-    const response = await axios.get(
-      `${API_URL}/${id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    console.log(
-      "✅ Lesson retrieved successfully."
-    );
+    console.log("✅ Lesson retrieved successfully.");
 
     return response.data;
   } catch (error) {
-    console.error(
-      "❌ Get lesson request failed."
-    );
+    console.error("❌ Get lesson request failed.");
 
     if (error.response) {
-      console.error(
-        "Status:",
-        error.response.status
-      );
-
-      console.error(
-        "Server response:",
-        error.response.data
-      );
+      console.error("Status:", error.response.status);
+      console.error("Server response:", error.response.data);
 
       if (error.response.status === 401) {
         console.error(
@@ -91,23 +40,11 @@ export async function getLesson(id, token) {
 // -----------------------------------------
 // Get Current Lesson
 // -----------------------------------------
-export async function getCurrentLesson(token) {
+export async function getCurrentLesson() {
   try {
-    validateToken(token);
+    console.log("📖 Getting current lesson...");
 
-    console.log(
-      "📖 Getting current lesson..."
-    );
-
-    const response = await axios.get(
-      `${API_URL}/current`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await api.get("/lessons/current");
 
     console.log(
       "✅ Current lesson retrieved successfully."
@@ -120,15 +57,8 @@ export async function getCurrentLesson(token) {
     );
 
     if (error.response) {
-      console.error(
-        "Status:",
-        error.response.status
-      );
-
-      console.error(
-        "Server response:",
-        error.response.data
-      );
+      console.error("Status:", error.response.status);
+      console.error("Server response:", error.response.data);
 
       if (error.response.status === 401) {
         console.error(
@@ -152,33 +82,17 @@ export async function getCurrentLesson(token) {
 // -----------------------------------------
 // Complete Lesson
 // -----------------------------------------
-export async function completeLesson(
-  id,
-  token
-) {
+export async function completeLesson(id) {
+  if (!id) {
+    throw new Error("Lesson ID is required.");
+  }
+
   try {
-    if (!id) {
-      throw new Error(
-        "Lesson ID is required."
-      );
-    }
+    console.log("✅ Completing lesson:", id);
 
-    validateToken(token);
-
-    console.log(
-      "✅ Completing lesson:",
-      id
-    );
-
-    const response = await axios.patch(
-      `${API_URL}/${id}/complete`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
+    const response = await api.patch(
+      `/lessons/${id}/complete`,
+      {}
     );
 
     console.log(
@@ -192,15 +106,8 @@ export async function completeLesson(
     );
 
     if (error.response) {
-      console.error(
-        "Status:",
-        error.response.status
-      );
-
-      console.error(
-        "Server response:",
-        error.response.data
-      );
+      console.error("Status:", error.response.status);
+      console.error("Server response:", error.response.data);
 
       if (error.response.status === 401) {
         console.error(
