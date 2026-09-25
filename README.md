@@ -8,7 +8,7 @@
 
 **[Try Mentra →](https://dulcet-faloodeh-96d21b.netlify.app/)**
 
-**[View Source Code →](YOUR_GITHUB_URL)**
+**[View Source Code →](https://github.com/OgidiBlessing2/Mentra/tree/auth-1)**
 
 ---
 
